@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <!-- Background Circle -->
+  <circle cx="32" cy="32" r="30" fill="#000000" stroke="#00C853" stroke-width="2.5" />
+  
+  <!-- Outer dashed decorative rings -->
+  <circle cx="32" cy="32" r="26" stroke="rgba(0, 200, 83, 0.25)" stroke-width="1.2" stroke-dasharray="4 4" />
+  
+  <!-- Initials "RP" -->
+  <text 
+    x="32" 
+    y="40" 
+    font-family="monospace, ui-monospace, sans-serif" 
+    font-size="22" 
+    font-weight="bold" 
+    fill="#FFFFFF" 
+    text-anchor="middle"
+    letter-spacing="-1px"
+  >
+    R<tspan fill="#00C853">P</tspan>
+  </text>
+</svg>
