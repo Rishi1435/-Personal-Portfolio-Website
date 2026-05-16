@@ -1,0 +1,125 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-primary-bg: #000000;
+  --color-secondary-bg: #0A0A0A;
+  --color-accent: #00C853;
+  --color-accent-glow: #00E676;
+  --color-accent-dim: #1B5E20;
+  --color-text-primary: #E0E0E0;
+  --color-text-secondary: #9E9E9E;
+  --color-surface: rgba(10, 10, 10, 0.8);
+}
+
+:root {
+  background-color: var(--color-primary-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: var(--color-primary-bg);
+  color: var(--color-text-primary);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-primary-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-accent-dim);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--color-accent);
+  color: #000000;
+}
+
+/* Animation Utilities */
+.text-shadow-glow {
+  text-shadow: 0 0 20px rgba(0, 200, 83, 0.4);
+}
+
+.box-shadow-glow {
+  box-shadow: 0 0 30px rgba(0, 200, 83, 0.2);
+}
+
+.box-shadow-glow-hover:hover {
+  box-shadow: 0 0 40px rgba(0, 200, 83, 0.4);
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-float-1, .animate-float-2, .animate-float-3 {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* Floating Animations */
+@keyframes float-1 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes float-2 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes float-3 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-float-1 {
+  animation: float-1 4s ease-in-out infinite;
+}
+.animate-float-2 {
+  animation: float-2 5s ease-in-out infinite;
+}
+.animate-float-3 {
+  animation: float-3 4.5s ease-in-out infinite;
+}
+
+/* Hide default cursor on desktop pointers when custom cursor is active */
+@media (pointer: fine) {
+  html, body, a, button, input, textarea, select, [role="button"], .cursor-pointer {
+    cursor: none !important;
+  }
+}
+
+/* Hide custom cursor on touch/coarse devices, show only on desktop fine pointers */
+.custom-cursor {
+  display: none !important;
+}
+@media (pointer: fine) {
+  .custom-cursor {
+    display: block !important;
+  }
+}
+
