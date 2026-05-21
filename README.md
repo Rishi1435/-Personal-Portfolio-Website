@@ -2,6 +2,8 @@
 
 A premium, cinematic personal portfolio website built with a custom **Black & Emerald Green** aesthetic. Designed with modern web technologies including **React 19**, **Vite**, **Tailwind CSS v4**, **Framer Motion**, and **react-scroll-parallax**.
 
+🎥 **[Watch the Demo Video on YouTube](https://youtu.be/HLD8gFLPQi0)**
+
 ---
 
 ## 🚀 Key Features & Animations
