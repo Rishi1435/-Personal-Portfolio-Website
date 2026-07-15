@@ -123,3 +123,62 @@ body {
   }
 }
 
+/* ─── Custom Keyframe Animations ─────────────────────────────── */
+@keyframes text-glitch {
+  0%, 100% { opacity: 1; transform: translate(0); text-shadow: 0 0 10px rgba(0,230,118,0.8); }
+  10% { opacity: 0.85; transform: translate(-1.5px, 0.5px); text-shadow: -2px 0 #00E676, 2px 0 #00C853; }
+  20% { opacity: 1; transform: translate(1px, -0.5px); text-shadow: 2px 0 #00E676, -2px 0 #00C853; }
+  30% { opacity: 0.9; transform: translate(0); text-shadow: 0 0 10px rgba(0,230,118,0.8); }
+  60% { opacity: 1; transform: translate(-0.5px, -0.5px); text-shadow: -1px 0 #00E676; }
+  62% { opacity: 0.4; transform: translate(2px, 1px); }
+  64% { opacity: 1; transform: translate(0); }
+  85% { opacity: 0.95; transform: translate(1.5px, -0.5px); text-shadow: 1px 0 #00E676, -1px 0 #00C853; }
+  87% { opacity: 1; transform: translate(0); }
+}
+
+@keyframes crt-flicker {
+  0% { opacity: 0.55; }
+  50% { opacity: 0.65; }
+  52% { opacity: 0.45; }
+  54% { opacity: 0.65; }
+  80% { opacity: 0.58; }
+  100% { opacity: 0.6; }
+}
+
+@keyframes scan-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-text-glitch {
+  animation: text-glitch 2.5s infinite ease-in-out;
+}
+
+.animate-scan-sweep {
+  animation: scan-sweep 3.5s linear infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+.crt-overlay {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.35) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.03),
+    rgba(0, 255, 0, 0.01),
+    rgba(0, 0, 255, 0.03)
+  );
+  background-size: 100% 3px, 6px 100%;
+  animation: crt-flicker 0.15s infinite;
+}
+
+

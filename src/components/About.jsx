@@ -8,25 +8,32 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 /* ─── Animated Counter ─────────────────────────────────────── */
 const Counter = ({ target, suffix = '', prefix = '', label, sub }) => {
   const [count, setCount] = useState(0);
-  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.5 });
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.3 });
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     if (!inView) return;
     if (prefersReducedMotion) { setCount(target); return; }
-    let start = 0;
-    const duration = 1600;
-    const step = target / (duration / 16);
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= target) { setCount(target); clearInterval(timer); }
-      else setCount(Math.floor(start));
-    }, 16);
-    return () => clearInterval(timer);
+    const duration = 1800; // 1.8s
+    const startTime = performance.now();
+
+    const updateCounter = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      const currentVal = Math.floor(easedProgress * target);
+      setCount(currentVal);
+      if (progress < 1) {
+        requestAnimationFrame(updateCounter);
+      } else {
+        setCount(target);
+      }
+    };
+    requestAnimationFrame(updateCounter);
   }, [inView, target, prefersReducedMotion]);
 
   return (
-    <div ref={ref} className="relative flex flex-col items-center gap-2 group p-6 rounded-2xl bg-[#080808]/80 border border-[rgba(0,200,83,0.12)] hover:border-[rgba(0,200,83,0.35)] hover:shadow-[0_0_30px_rgba(0,200,83,0.08)] transition-all duration-400 overflow-hidden">
+    <div ref={ref} className="relative flex flex-col items-center gap-2 group p-6 rounded-2xl bg-[#080808]/80 border border-[rgba(0,200,83,0.12)] hover:border-[rgba(0,200,83,0.4)] hover:shadow-[0_0_30px_rgba(0,200,83,0.12)] transition-all duration-400 overflow-hidden">
       {/* Corner glow */}
       <div className="absolute bottom-0 right-0 w-16 h-16 bg-[radial-gradient(circle,rgba(0,200,83,0.1)_0%,transparent_70%)] pointer-events-none" />
       <div className="text-[2.6rem] md:text-[3.2rem] font-display font-black leading-none">
@@ -101,7 +108,7 @@ const About = () => {
 
   const achievements = [
     { icon: '🚀', title: 'Top 5 Project Ranking — Qlue', sub: 'Ranked in the Top 5 among 160+ projects at Project Space', delay: 0.1 },
-    { icon: '⚡', title: '15% Engagement Boost — Xpensia', sub: 'Automated SMS parser increased transaction log retention', delay: 0.18 },
+    { icon: '🎓', title: '4 Anthropic Certifications', sub: 'Completed in a single learning sprint (Apr 2026)', delay: 0.18 },
     { icon: '🏆', title: '1st Prize — CampusConnect Case Study', sub: 'Led 5-person team · Beat 14 universities nationally', delay: 0.26 },
     { icon: '🎯', title: 'Tech Fest Event Coordinator', sub: 'Directed coding contest · 200+ participants', delay: 0.34 },
   ];
@@ -129,14 +136,20 @@ const About = () => {
         {/* ── Section Header ─────────────────────────────────── */}
         <ScrollReveal>
           <div className="mb-16">
-            <motion.span
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="font-mono text-[11px] text-accent tracking-[0.35em] uppercase block mb-3"
-            >
-              // section_01 · about_me
-            </motion.span>
+            <div className="flex items-center gap-3 mb-3">
+              <motion.span
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="font-mono text-[11px] text-accent tracking-[0.35em] uppercase block"
+              >
+                // section_01 · about_me
+              </motion.span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-[rgba(0,200,83,0.1)] border border-[rgba(0,200,83,0.35)] rounded-full shadow-[0_0_12px_rgba(0,200,83,0.25)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
+                <span className="font-mono text-[9px] text-accent font-bold tracking-widest uppercase">● ONLINE — OPEN FOR OPPORTUNITIES</span>
+              </div>
+            </div>
             <div className="flex items-center gap-6 flex-wrap">
               <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-display font-black text-text-primary leading-none tracking-[-0.03em]">
                 Who Am <span className="text-accent relative">
@@ -159,9 +172,9 @@ const About = () => {
 
         {/* ── Stat Counters Row ──────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-14">
-          <ScrollReveal delay={0.05}><Counter target={12} suffix="+" label="Months Experience" sub="Trainee & Ambassador Roles" /></ScrollReveal>
-          <ScrollReveal delay={0.12}><Counter target={15} suffix="%" label="User Engagement Growth" sub="In Production Apps" /></ScrollReveal>
-          <ScrollReveal delay={0.19}><Counter target={4} suffix="+" label="Major Achievements" sub="Hackathons & Case Studies" /></ScrollReveal>
+          <ScrollReveal delay={0.05}><Counter target={18} suffix="+" label="Months Experience" sub="Trainee & Ambassador Roles" /></ScrollReveal>
+          <ScrollReveal delay={0.12}><Counter target={500} suffix="+" label="LinkedIn Connections" sub="Professional Network" /></ScrollReveal>
+          <ScrollReveal delay={0.19}><Counter target={6} suffix="" label="Technical Certifications" sub="Anthropic & Microsoft" /></ScrollReveal>
         </div>
 
         {/* ── Main Two-Column Grid ─────────────────────────── */}
@@ -186,7 +199,7 @@ const About = () => {
                 <p className="font-body text-text-secondary text-sm md:text-base leading-relaxed -mt-4">
                   I'm a <span className="text-text-primary font-semibold">Full Stack Developer</span> passionate about
                   building mobile apps and cloud-native systems. With{' '}
-                  <span className="text-accent font-semibold">12+ months</span> of hands-on trainee and representative experience,
+                  <span className="text-accent font-semibold">1.5+ years</span> of hands-on trainee and representative experience,
                   I've shipped Flutter apps, Node.js APIs, and{' '}
                   <span className="text-text-primary font-semibold">AWS serverless architectures</span> that serve
                   real users at scale. Currently pursuing B.Tech in Computer Science at{' '}
@@ -238,7 +251,7 @@ const About = () => {
                 {/* Title Bar */}
                 <div className="bg-[#090909] border-b border-[rgba(0,200,83,0.1)] px-5 py-4 flex items-center justify-between select-none">
                   <div className="flex gap-2 items-center">
-                    {[['#FF5F56','#ff5f5666'], ['#FFBD2E','#ffbd2e66'], ['#27C93F','#27c93f66']].map(([bg, shadow], i) => (
+                    {[['#FF5F56', '#ff5f5666'], ['#FFBD2E', '#ffbd2e66'], ['#27C93F', '#27c93f66']].map(([bg, shadow], i) => (
                       <motion.span
                         key={i}
                         whileHover={{ scale: 1.3, boxShadow: `0 0 8px ${shadow}` }}

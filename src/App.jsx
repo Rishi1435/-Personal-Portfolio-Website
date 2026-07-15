@@ -11,6 +11,34 @@ import ParallaxBackground from './components/ParallaxBackground';
 import LoadingScreen from './components/LoadingScreen';
 import { motion, useScroll, useSpring, AnimatePresence } from 'framer-motion';
 
+const GlobalMatrixParticles = () => (
+  <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1] opacity-[0.035]">
+    <div 
+      className="absolute inset-0"
+      style={{
+        backgroundImage: 'radial-gradient(circle, #00C853 1px, transparent 1px)',
+        backgroundSize: '24px 24px'
+      }}
+    />
+    <div className="absolute inset-0 flex justify-between px-4">
+      {[...Array(16)].map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{ y: -250, opacity: Math.random() * 0.4 + 0.1 }}
+          animate={{ y: ['-100%', '300%'] }}
+          transition={{
+            duration: Math.random() * 6 + 6,
+            repeat: Infinity,
+            ease: 'linear',
+            delay: Math.random() * 5
+          }}
+          className="w-[1px] h-40 bg-gradient-to-b from-transparent via-accent to-transparent"
+        />
+      ))}
+    </div>
+  </div>
+);
+
 function App() {
   const [loading, setLoading] = useState(true);
   const { scrollYProgress } = useScroll();
@@ -23,7 +51,7 @@ function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 2000);
+    }, 2450);
     return () => clearTimeout(timer);
   }, []);
 
@@ -44,9 +72,10 @@ function App() {
       <AnimatePresence>
         {loading && <LoadingScreen />}
       </AnimatePresence>
-      {/* Scroll Progress Bar */}
+
+      {/* Terminal Scroll Progress Bar */}
       <motion.div 
-        className="fixed top-0 left-0 right-0 h-[3.5px] bg-accent origin-left z-[99999] shadow-[0_0_12px_#00E676,0_0_4px_#00C853]" 
+        className="fixed top-0 left-0 right-0 h-[4px] bg-gradient-to-r from-accent via-accent-glow to-[#69F0AE] origin-left z-[99999] shadow-[0_0_16px_#00E676,0_0_6px_#00C853] border-b border-white/20" 
         style={{ scaleX }} 
       />
 
@@ -55,15 +84,16 @@ function App() {
 
       {/* Interactive Cursor Spotlight Glow (effecting the portfolio screen on movement) */}
       <div 
-        className="fixed inset-0 pointer-events-none z-[1] transition-opacity duration-300 hidden md:block"
+        className="fixed inset-0 pointer-events-none z-[2] transition-opacity duration-300 hidden md:block"
         style={{
           background: 'radial-gradient(550px circle at var(--mouse-x, 50vw) var(--mouse-y, 50vh), rgba(0, 200, 83, 0.08) 0%, transparent 80%)'
         }}
       />
 
-      {/* Floating Parallax Background Shapes */}
+      {/* Floating Parallax Background Shapes & Global Matrix Particles */}
       <div className="absolute inset-0 z-0">
         <ParallaxBackground />
+        <GlobalMatrixParticles />
       </div>
 
       {/* Core Layout Structure */}
@@ -83,3 +113,4 @@ function App() {
 }
 
 export default App;
+
