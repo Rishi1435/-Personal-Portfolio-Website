@@ -1,9 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaGithub, FaLinkedin, FaEnvelope } from 'react-icons/fa';
 
 const Footer = () => {
   const [ping, setPing] = useState(16);
+  const [matrixLines] = useState(() =>
+    Array.from({ length: 10 }).map((_, i) => ({
+      id: i,
+      opacity: Math.random() * 0.5 + 0.2,
+      duration: Math.random() * 4 + 4,
+      delay: Math.random() * 3
+    }))
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -25,16 +33,16 @@ const Footer = () => {
           }}
         />
         <div className="absolute inset-0 flex justify-around">
-          {[...Array(10)].map((_, i) => (
+          {matrixLines.map((line) => (
             <motion.div
-              key={i}
-              initial={{ y: -100, opacity: Math.random() * 0.5 + 0.2 }}
+              key={line.id}
+              initial={{ y: -100, opacity: line.opacity }}
               animate={{ y: ['-100%', '300%'] }}
               transition={{
-                duration: Math.random() * 4 + 4,
+                duration: line.duration,
                 repeat: Infinity,
                 ease: 'linear',
-                delay: Math.random() * 3
+                delay: line.delay
               }}
               className="w-[1px] h-28 bg-gradient-to-b from-transparent via-accent to-transparent"
             />

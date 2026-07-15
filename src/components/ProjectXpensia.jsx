@@ -1,4 +1,3 @@
-import React from 'react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 
 const ProjectXpensia = () => {
@@ -66,7 +65,7 @@ const ProjectXpensia = () => {
           { label:'Amazon Pay',   amt:'-₹899',  cat:'Shopping', color:'rgba(255,80,80,0.7)',  y:118 },
           { label:'Salary Credit', amt:'+₹15k', cat:'Income',   color:'rgba(0,200,83,0.8)',  y:131 },
           { label:'Swiggy',       amt:'-₹340',  cat:'Food',     color:'rgba(255,80,80,0.7)',  y:144 },
-        ].map(({ label, amt, cat, color, y }) => (
+        ].map(({ label, amt, color, y }) => (
           <g key={label}>
             <rect x="163" y={y-7} width="94" height="11" rx="3" fill="#0C0C0C" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5"/>
             <circle cx="170" cy={y-1.5} r="3" fill={color} opacity="0.8"/>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 const bootLogs = [
@@ -12,6 +12,15 @@ const bootLogs = [
 ];
 
 const MatrixBackground = () => {
+  const [lines] = useState(() =>
+    Array.from({ length: 12 }).map((_, i) => ({
+      id: i,
+      opacity: Math.random() * 0.5 + 0.2,
+      duration: Math.random() * 3 + 2,
+      delay: Math.random() * 2
+    }))
+  );
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-15">
       <div 
@@ -23,16 +32,16 @@ const MatrixBackground = () => {
       />
       {/* Animated falling digital lines */}
       <div className="absolute inset-0 flex justify-around">
-        {[...Array(12)].map((_, i) => (
+        {lines.map((line) => (
           <motion.div
-            key={i}
-            initial={{ y: -200, opacity: Math.random() * 0.5 + 0.2 }}
+            key={line.id}
+            initial={{ y: -200, opacity: line.opacity }}
             animate={{ y: ['-100%', '200%'] }}
             transition={{
-              duration: Math.random() * 3 + 2,
+              duration: line.duration,
               repeat: Infinity,
               ease: 'linear',
-              delay: Math.random() * 2
+              delay: line.delay
             }}
             className="w-[1px] h-32 bg-gradient-to-b from-transparent via-accent to-transparent"
           />

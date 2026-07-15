@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import About from './components/About';
@@ -11,33 +11,44 @@ import ParallaxBackground from './components/ParallaxBackground';
 import LoadingScreen from './components/LoadingScreen';
 import { motion, useScroll, useSpring, AnimatePresence } from 'framer-motion';
 
-const GlobalMatrixParticles = () => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1] opacity-[0.035]">
-    <div 
-      className="absolute inset-0"
-      style={{
-        backgroundImage: 'radial-gradient(circle, #00C853 1px, transparent 1px)',
-        backgroundSize: '24px 24px'
-      }}
-    />
-    <div className="absolute inset-0 flex justify-between px-4">
-      {[...Array(16)].map((_, i) => (
-        <motion.div
-          key={i}
-          initial={{ y: -250, opacity: Math.random() * 0.4 + 0.1 }}
-          animate={{ y: ['-100%', '300%'] }}
-          transition={{
-            duration: Math.random() * 6 + 6,
-            repeat: Infinity,
-            ease: 'linear',
-            delay: Math.random() * 5
-          }}
-          className="w-[1px] h-40 bg-gradient-to-b from-transparent via-accent to-transparent"
-        />
-      ))}
+const GlobalMatrixParticles = () => {
+  const [particles] = useState(() =>
+    Array.from({ length: 16 }).map((_, i) => ({
+      id: i,
+      opacity: Math.random() * 0.4 + 0.1,
+      duration: Math.random() * 6 + 6,
+      delay: Math.random() * 5
+    }))
+  );
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1] opacity-[0.035]">
+      <div 
+        className="absolute inset-0"
+        style={{
+          backgroundImage: 'radial-gradient(circle, #00C853 1px, transparent 1px)',
+          backgroundSize: '24px 24px'
+        }}
+      />
+      <div className="absolute inset-0 flex justify-between px-4">
+        {particles.map((p) => (
+          <motion.div
+            key={p.id}
+            initial={{ y: -250, opacity: p.opacity }}
+            animate={{ y: ['-100%', '300%'] }}
+            transition={{
+              duration: p.duration,
+              repeat: Infinity,
+              ease: 'linear',
+              delay: p.delay
+            }}
+            className="w-[1px] h-40 bg-gradient-to-b from-transparent via-accent to-transparent"
+          />
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 function App() {
   const [loading, setLoading] = useState(true);

@@ -1,41 +1,49 @@
-import React, { useMemo } from 'react';
+import { useState } from 'react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 
 const Starfield = () => {
   const prefersReducedMotion = useReducedMotion();
   
-  const stars = useMemo(() => {
+  const [starsData] = useState(() => {
     return Array.from({ length: 80 }).map((_, i) => {
-      // Random positions
       const top = `${Math.random() * 100}%`;
       const left = `${Math.random() * 100}%`;
-      // Random sizes between 1px and 2px
       const size = `${Math.random() * 1 + 1}px`;
-      // Base opacity
-      const opacity = Math.random() * 0.15 + 0.15; // 15% to 30%
-      // Random animation duration and delay
+      const opacity = Math.random() * 0.15 + 0.15;
       const duration = `${Math.random() * 3 + 2}s`;
       const delay = `${Math.random() * 2}s`;
-      // Only 30% of stars twinkle
-      const shouldTwinkle = Math.random() > 0.7 && !prefersReducedMotion;
+      const twinkleFlag = Math.random() > 0.7;
 
       return {
         id: i,
-        style: {
-          top,
-          left,
-          width: size,
-          height: size,
-          opacity,
-          backgroundColor: '#FFFFFF',
-          position: 'absolute',
-          borderRadius: '50%',
-          pointerEvents: 'none',
-          animation: shouldTwinkle ? `twinkle ${duration} ease-in-out ${delay} infinite alternate` : 'none',
-        }
+        top,
+        left,
+        size,
+        opacity,
+        duration,
+        delay,
+        twinkleFlag
       };
     });
-  }, [prefersReducedMotion]);
+  });
+
+  const stars = starsData.map((star) => ({
+    id: star.id,
+    style: {
+      top: star.top,
+      left: star.left,
+      width: star.size,
+      height: star.size,
+      opacity: star.opacity,
+      backgroundColor: '#FFFFFF',
+      position: 'absolute',
+      borderRadius: '50%',
+      pointerEvents: 'none',
+      animation: (star.twinkleFlag && !prefersReducedMotion)
+        ? `twinkle ${star.duration} ease-in-out ${star.delay} infinite alternate`
+        : 'none',
+    }
+  }));
 
   return (
     <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none bg-[#000000]">

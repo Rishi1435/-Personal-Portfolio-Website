@@ -1,4 +1,3 @@
-import React from 'react';
 import RishiPic from '../assets/images/Rishi\'s_Pic.png';
 import RishiResume from '../assets/files/Rishi_Resume(new).pdf';
 import { FaTerminal, FaMapMarkerAlt, FaEnvelope, FaChevronRight } from 'react-icons/fa';

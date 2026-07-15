@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import TerminalTyping from './TerminalTyping';
@@ -7,13 +7,12 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 
 /* ─── Animated Counter ─────────────────────────────────────── */
 const Counter = ({ target, suffix = '', prefix = '', label, sub }) => {
-  const [count, setCount] = useState(0);
-  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.3 });
   const prefersReducedMotion = useReducedMotion();
+  const [count, setCount] = useState(() => prefersReducedMotion ? target : 0);
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.3 });
 
   useEffect(() => {
-    if (!inView) return;
-    if (prefersReducedMotion) { setCount(target); return; }
+    if (!inView || prefersReducedMotion) return;
     const duration = 1800; // 1.8s
     const startTime = performance.now();
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 
@@ -45,19 +45,18 @@ const terminalData = [
 const TerminalTyping = () => {
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.15 });
   const prefersReducedMotion = useReducedMotion();
-  const [visibleLines, setVisibleLines] = useState([]);
-  const [currentCmdIndex, setCurrentCmdIndex] = useState(0);
+  const [visibleLines, setVisibleLines] = useState(() =>
+    prefersReducedMotion
+      ? terminalData.map(block => ({ ...block, typedCmd: block.cmd, showOutput: true }))
+      : []
+  );
+  const [currentCmdIndex, setCurrentCmdIndex] = useState(() =>
+    prefersReducedMotion ? terminalData.length : 0
+  );
   const [currentTypedText, setCurrentTypedText] = useState('');
 
   useEffect(() => {
-    if (!inView) return;
-
-    if (prefersReducedMotion) {
-      // Instantly load all text for accessibility
-      setVisibleLines(terminalData.map(block => ({ ...block, typedCmd: block.cmd, showOutput: true })));
-      setCurrentCmdIndex(terminalData.length);
-      return;
-    }
+    if (!inView || prefersReducedMotion) return;
 
     let activeIndex = 0;
     let charIdx = 0;

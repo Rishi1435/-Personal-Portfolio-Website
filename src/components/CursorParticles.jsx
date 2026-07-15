@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 
@@ -64,7 +64,7 @@ const CursorParticles = () => {
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [prefersReducedMotion]);
+  }, [prefersReducedMotion, mouseX, mouseY]);
 
   useEffect(() => {
     if (prefersReducedMotion) return;
