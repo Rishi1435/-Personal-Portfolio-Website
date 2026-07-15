@@ -1,181 +1,278 @@
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const bootLogs = [
-  { text: 'INITIALIZING CORE MODULES .............. ', status: '[OK]', color: 'text-white font-bold' },
-  { text: 'LOADING PORTFOLIO ENGINE v3.1.0 ......... ', status: '[OK]', color: 'text-white font-bold' },
-  { text: 'AUTHENTICATING USER SESSION ............. ', status: '[VERIFIED]', color: 'text-accent font-bold' },
-  { text: 'CONNECTING TO CLOUD NODES .............. ', status: '[ACTIVE]', color: 'text-accent-glow font-bold' },
-  { text: 'INJECTING SKILL MATRIX ................. ', status: '[LOADED]', color: 'text-white font-bold' },
-  { text: 'DEPLOYING INTERFACE .................... ', status: '[100%]', color: 'text-accent font-bold' },
-  { text: 'SYSTEM ONLINE. WELCOME, VISITOR.', status: '', color: 'text-accent font-black tracking-widest mt-1 block' }
+/* ─── Boot sequence log lines ─────────────────────────────── */
+const BOOT_LINES = [
+  { text: '> BIOS_CHECK ................... [OK]',       delay: 300,  color: '#00C853' },
+  { text: '> KERNEL_INIT .................. [OK]',       delay: 600,  color: '#00C853' },
+  { text: '> LOADING_PORTFOLIO_ENGINE v3.1 ....',        delay: 900,  color: '#a0a0b8' },
+  { text: '> PROJECTS_MODULE .............. [LOADED]',   delay: 1200, color: '#00E676' },
+  { text: '> SKILLS_MATRIX ................ [INDEXED]',  delay: 1500, color: '#00E676' },
+  { text: '> EXPERIENCE_LOG ............... [PARSED]',   delay: 1800, color: '#00C853' },
+  { text: '> CONTACT_SECURE ............... [AES-256]',  delay: 2100, color: '#00C853' },
+  { text: '> SYSTEM_READY ................. [ONLINE]',   delay: 2400, color: '#00E676' },
 ];
 
-const MatrixBackground = () => {
-  const [lines] = useState(() =>
-    Array.from({ length: 12 }).map((_, i) => ({
-      id: i,
-      opacity: Math.random() * 0.5 + 0.2,
-      duration: Math.random() * 3 + 2,
-      delay: Math.random() * 2
-    }))
-  );
+/* ASCII art logo lines */
+const ASCII_LOGO = [
+  ' ██████╗ ██████╗ ',
+  ' ██╔══██╗██╔══██╗',
+  ' ██████╔╝██████╔╝',
+  ' ██╔══██╗██╔═══╝ ',
+  ' ██║  ██║██║     ',
+  ' ╚═╝  ╚═╝╚═╝     ',
+];
 
+/* ─── ASCII Progress Bar ─────────────────────────────────── */
+const ProgressBar = ({ progress }) => {
+  const total = 22;
+  const filled = Math.round((progress / 100) * total);
+  const bar = '█'.repeat(filled) + '░'.repeat(total - filled);
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-15">
-      <div 
-        className="absolute inset-0"
-        style={{
-          backgroundImage: 'radial-gradient(circle, #00C853 1px, transparent 1px)',
-          backgroundSize: '20px 20px'
-        }}
-      />
-      {/* Animated falling digital lines */}
-      <div className="absolute inset-0 flex justify-around">
-        {lines.map((line) => (
-          <motion.div
-            key={line.id}
-            initial={{ y: -200, opacity: line.opacity }}
-            animate={{ y: ['-100%', '200%'] }}
-            transition={{
-              duration: line.duration,
-              repeat: Infinity,
-              ease: 'linear',
-              delay: line.delay
-            }}
-            className="w-[1px] h-32 bg-gradient-to-b from-transparent via-accent to-transparent"
-          />
-        ))}
-      </div>
-    </div>
+    <span>
+      <span style={{ color: '#00C853' }}>[{bar}]</span>{' '}
+      <span style={{ color: '#00E676', fontWeight: 'bold' }}>{progress}%</span>
+    </span>
   );
 };
 
+/* ─── Main Loading Screen ─────────────────────────────────── */
 const LoadingScreen = () => {
-  const [progress, setProgress] = useState(0);
-  const [activeLogs, setActiveLogs] = useState([]);
+  const [visibleLines, setVisibleLines] = useState([]);
+  const [progress, setProgress]         = useState(0);
+  const [showReady, setShowReady]       = useState(false);
+  const [logoLines, setLogoLines]       = useState([]);
+  const [cursorOn, setCursorOn]         = useState(true);
 
+  /* ── cursor blink ────────────────────────── */
   useEffect(() => {
-    // Increment progress bar smoothly up to 100%
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(progressInterval);
-          return 100;
-        }
-        return prev + 1;
-      });
-    }, 22);
-
-    // Stagger boot logs one by one with delays
-    const logTimers = bootLogs.map((log, index) => {
-      // First 6 lines type out rapidly every ~240ms (~80ms character delay feel), last line appears right before complete
-      const delay = index === 6 ? 1850 : 200 + index * 260;
-      return setTimeout(() => {
-        setActiveLogs((prev) => [...prev, log]);
-      }, delay);
-    });
-
-    return () => {
-      clearInterval(progressInterval);
-      logTimers.forEach(clearTimeout);
-    };
+    const id = setInterval(() => setCursorOn(v => !v), 530);
+    return () => clearInterval(id);
   }, []);
 
-  // Compute ASCII bar: 20 characters total
-  const totalBarChars = 20;
-  const filledChars = Math.floor((progress / 100) * totalBarChars);
-  const asciiBar = '█'.repeat(filledChars) + '░'.repeat(totalBarChars - filledChars);
+  /* ── ASCII logo reveal (collected timers → single cleanup array) ── */
+  useEffect(() => {
+    const timers = ASCII_LOGO.map((line, i) =>
+      setTimeout(() => setLogoLines(prev => [...prev, line]), i * 90)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  /* ── Boot log lines ──────────────────────── */
+  useEffect(() => {
+    const timers = BOOT_LINES.map((entry) =>
+      setTimeout(
+        () => setVisibleLines(prev => [...prev, entry]),
+        entry.delay
+      )
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  /* ── Progress counter (0 → 100 over ~2.6s) ─ */
+  useEffect(() => {
+    const DURATION = 2600;
+    const TICK     = 40;
+    let elapsed    = 0;
+    const id = setInterval(() => {
+      elapsed += TICK;
+      const pct = Math.min(100, Math.round((elapsed / DURATION) * 100));
+      setProgress(pct);
+      if (pct >= 100) clearInterval(id);
+    }, TICK);
+    return () => clearInterval(id);
+  }, []);
+
+  /* ── "SYSTEM READY" phase ────────────────── */
+  useEffect(() => {
+    const t = setTimeout(() => setShowReady(true), 2800);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <motion.div
-      initial={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-      exit={{ 
-        opacity: 0,
-        scale: 1.06,
-        filter: 'blur(12px) brightness(1.6)',
-        x: [0, -10, 10, -5, 5, 0],
-        transition: { duration: 0.55, ease: 'easeInOut' } 
-      }}
-      className="fixed inset-0 bg-[#020202] z-[999999] flex flex-col items-center justify-center pointer-events-auto select-none overflow-hidden"
+      key="loading-screen"
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0, scale: 1.03, filter: 'blur(6px)' }}
+      transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+      style={{ position: 'fixed', inset: 0, zIndex: 100000, background: '#000', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
-      {/* CRT Scanline Overlay */}
-      <div className="absolute inset-0 crt-overlay pointer-events-none z-20" />
+      {/* ── Scanline overlay ───────────────────────────────── */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5,
+        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,200,83,0.06) 2px, rgba(0,200,83,0.06) 4px)',
+        backgroundSize: '100% 4px'
+      }} />
 
-      {/* Matrix / Digital Grid Background */}
-      <MatrixBackground />
+      {/* ── Moving grid ─────────────────────────────────────── */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, opacity: 0.035,
+        backgroundImage: 'linear-gradient(rgba(0,200,83,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,83,1) 1px, transparent 1px)',
+        backgroundSize: '44px 44px',
+        animation: 'grid-scroll 10s linear infinite'
+      }} />
 
-      <div className="w-[340px] sm:w-[420px] flex flex-col font-mono text-[11px] text-accent relative z-30 p-6 bg-[#060606]/90 border border-[rgba(0,200,83,0.25)] rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.9),0_0_20px_rgba(0,200,83,0.1)] backdrop-blur-md">
-        {/* Terminal Header */}
-        <div className="flex items-center justify-between border-b border-[rgba(0,200,83,0.2)] pb-3 mb-4">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-accent animate-ping shadow-[0_0_8px_#00E676]" />
-            <span className="tracking-widest font-black uppercase animate-text-glitch">BOOTING_SEQUENCE</span>
-          </div>
-          <span className="text-[10px] text-accent/60 font-semibold tracking-wider">V2.4.0</span>
+      {/* ── Corner glows ────────────────────────────────────── */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '380px', height: '380px', background: 'radial-gradient(circle, rgba(0,200,83,0.14) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: 0, right: 0, width: '340px', height: '340px', background: 'radial-gradient(circle, rgba(0,230,118,0.10) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+      {/* ── Terminal window ─────────────────────────────────── */}
+      <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '640px', margin: '0 16px' }}>
+
+        {/* Title bar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '12px 20px',
+          background: 'rgba(0,200,83,0.06)',
+          border: '1px solid rgba(0,200,83,0.18)',
+          borderBottom: 'none',
+          borderRadius: '16px 16px 0 0',
+          backdropFilter: 'blur(20px)'
+        }}>
+          <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#FF5F56', display: 'inline-block' }} />
+          <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#FFBD2E', display: 'inline-block' }} />
+          <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#27C93F', display: 'inline-block' }} />
+          <span style={{ flex: 1, textAlign: 'center', fontFamily: 'monospace', fontSize: '11px', color: 'rgba(0,200,83,0.55)', letterSpacing: '0.22em', textTransform: 'uppercase', userSelect: 'none' }}>
+            rishi@portfolio — boot.sh
+          </span>
+          <span style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgba(0,200,83,0.35)', userSelect: 'none' }}>zsh</span>
         </div>
 
-        {/* Boot Logs Container */}
-        <div className="min-h-[140px] space-y-1.5 text-[10px] sm:text-[11px] text-accent/90 font-medium">
-          {activeLogs.map((log, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-start leading-tight"
-            >
-              {log.status !== '' ? (
-                <>
-                  <span className="text-accent-glow mr-1.5 font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse inline-block" />
-                    &gt;
-                  </span>
-                  <span className="flex-1 break-words">
-                    {log.text}
-                    <span className={log.color}>{log.status}</span>
-                  </span>
-                </>
-              ) : (
-                <div className="w-full text-center py-1 mt-2 border-t border-[rgba(0,200,83,0.15)] font-display text-xs">
-                  <span className="w-2 h-2 rounded-full bg-accent inline-block mr-2 animate-ping" />
-                  {log.text}
-                </div>
-              )}
-            </motion.div>
-          ))}
-          {activeLogs.length < bootLogs.length && (
-            <div className="flex items-center gap-1.5 text-accent/50 text-[10px] animate-pulse pt-1">
-              <span>●</span>
-              <span>EXECUTING INITIALIZATION SCRIPT...</span>
+        {/* Body */}
+        <div style={{
+          background: 'rgba(0,6,0,0.92)',
+          border: '1px solid rgba(0,200,83,0.18)',
+          borderTop: 'none',
+          borderRadius: '0 0 16px 16px',
+          backdropFilter: 'blur(24px)',
+          padding: '24px',
+          minHeight: '400px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+
+          {/* ASCII Logo + version badge */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '10px', lineHeight: '1.35', color: '#00C853', userSelect: 'none' }}>
+              {logoLines.map((line, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {line}
+                </motion.div>
+              ))}
             </div>
-          )}
-        </div>
-
-        {/* ASCII Progress Bar */}
-        <div className="mt-6 pt-4 border-t border-[rgba(0,200,83,0.15)] flex flex-col gap-2">
-          <div className="flex justify-between items-center text-xs font-mono font-bold tracking-wider">
-            <span className="text-accent-glow">PROGRESS</span>
-            <span className="text-white drop-shadow-[0_0_8px_rgba(0,200,83,0.8)]">[{asciiBar}] {progress}%</span>
+            {logoLines.length === ASCII_LOGO.length && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                style={{ marginBottom: '2px' }}
+              >
+                {/* Glitch text manually (no className dependency) */}
+                <span style={{ position: 'relative', display: 'inline-block', fontFamily: 'monospace', fontSize: '11px', fontWeight: 'bold', color: '#00E676', letterSpacing: '0.28em', textTransform: 'uppercase' }}>
+                  PORTFOLIO_v3
+                  <span aria-hidden style={{ position: 'absolute', inset: 0, color: '#ff3030', opacity: 0.35, clipPath: 'polygon(0 55%, 100% 55%, 100% 75%, 0 75%)', animation: 'glitch-r 3s steps(3) infinite' }}>PORTFOLIO_v3</span>
+                  <span aria-hidden style={{ position: 'absolute', inset: 0, color: '#00E676', opacity: 0.55, clipPath: 'polygon(0 15%, 100% 15%, 100% 35%, 0 35%)', animation: 'glitch-g 2.7s steps(2) infinite' }}>PORTFOLIO_v3</span>
+                </span>
+              </motion.div>
+            )}
           </div>
 
-          {/* Smooth Solid Progress Bar */}
-          <div className="w-full h-1.5 bg-[rgba(0,200,83,0.12)] rounded-full overflow-hidden relative">
-            <div
-              className="h-full bg-gradient-to-r from-accent to-accent-glow shadow-[0_0_12px_#00E676] transition-all duration-75 ease-linear"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
+          {/* Divider */}
+          <div style={{ height: '1px', background: 'linear-gradient(to right, transparent, rgba(0,200,83,0.4), transparent)' }} />
 
-        <div className="flex justify-between items-center mt-3 text-[9px] text-accent/50 font-semibold tracking-widest uppercase">
-          <span>PORTAL // RISHI_CORE</span>
-          <span className="animate-pulse text-accent-glow">STATUS: DECRYPTING...</span>
+          {/* Boot log area */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', fontFamily: 'monospace', fontSize: '12px' }}>
+            <AnimatePresence>
+              {visibleLines.map((line, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ color: line.color, letterSpacing: '0.04em', lineHeight: 1.6 }}
+                >
+                  {line.text}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+
+            {/* Blinking cursor */}
+            {!showReady && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                <span style={{ color: '#00C853' }}>{'>'}</span>
+                <span style={{
+                  display: 'inline-block', width: '8px', height: '14px',
+                  background: '#00E676',
+                  opacity: cursorOn ? 1 : 0,
+                  transition: 'opacity 0.1s'
+                }} />
+              </div>
+            )}
+
+            {/* System ready */}
+            {showReady && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}
+              >
+                <div style={{ height: '1px', width: '100%', background: 'linear-gradient(to right, transparent, rgba(0,200,83,0.4), transparent)' }} />
+                <motion.p
+                  style={{ fontFamily: 'monospace', fontSize: '12px', color: '#00E676', fontWeight: 'bold', letterSpacing: '0.25em', textTransform: 'uppercase' }}
+                  animate={{ opacity: [1, 0.45, 1] }}
+                  transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  ◉ SYSTEM ONLINE — LAUNCHING PORTFOLIO
+                </motion.p>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: '1px', background: 'linear-gradient(to right, transparent, rgba(0,200,83,0.2), transparent)' }} />
+
+          {/* Progress bar */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '12px', letterSpacing: '0.04em' }}>
+              <ProgressBar progress={progress} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'monospace', fontSize: '9px', color: 'rgba(0,200,83,0.35)', letterSpacing: '0.18em', textTransform: 'uppercase', userSelect: 'none' }}>
+              <span>BOOT SEQUENCE</span>
+              <span>AES-256 ACTIVE</span>
+              <span>SECURE CHANNEL</span>
+            </div>
+          </div>
+
         </div>
       </div>
+
+      {/* ── CSS keyframes ───────────────────────────────────── */}
+      <style>{`
+        @keyframes grid-scroll {
+          from { transform: translateY(0); }
+          to   { transform: translateY(44px); }
+        }
+        @keyframes glitch-r {
+          0%  { transform: translateX(-2px); }
+          33% { transform: translateX(2px); }
+          66% { transform: translateX(-1px); }
+          100%{ transform: translateX(2px); }
+        }
+        @keyframes glitch-g {
+          0%  { transform: translateX(2px); }
+          50% { transform: translateX(-2px); }
+          100%{ transform: translateX(2px); }
+        }
+      `}</style>
     </motion.div>
   );
 };
 
 export default LoadingScreen;
-
