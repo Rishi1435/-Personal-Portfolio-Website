@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import ProjectQlue from './ProjectQlue';
@@ -19,12 +19,15 @@ const projects = [
     tech: ['Flutter', 'Dart', 'Node.js', 'AWS Lambda', 'AWS SAM', 'Bedrock (Nemotron + Claude)', 'Amazon Polly', 'Textract', 'DynamoDB', 'S3', 'Firebase Auth', 'API Gateway', 'WebSocket', 'FCM'],
     github: 'https://github.com/Rishi1435/Qlue-v2',
     metrics: [
+      { value: '649', label: 'Students Reached' },
       { value: '4', label: 'Interview Modes' },
       { value: '<2s', label: 'AI Response Time' },
       { value: '5', label: 'Polly AI Voices' },
+      { value: 'Top 5', label: 'Project Space Rank' },
     ],
     Visual: ProjectQlue,
-    status: 'LIVE'
+    status: 'LIVE',
+    featured: true,
   },
   {
     id: 'xpensia',
@@ -41,7 +44,8 @@ const projects = [
       { value: 'Bio', label: 'Biometric Lock' },
     ],
     Visual: ProjectXpensia,
-    status: 'LIVE'
+    status: 'LIVE',
+    featured: false,
   },
 ];
 
@@ -187,14 +191,14 @@ const categorizedProjects = [
   }
 ];
 
-/* ─── Sub-Component: Tech Badge ────────────────────────────── */
+/* ─── Sub-Component: Tech Badge (de-greened — green only on hover) ── */
 const TechBadge = ({ label, i }) => (
   <motion.span
     initial={{ opacity: 0, scale: 0.9 }}
     whileInView={{ opacity: 1, scale: 1 }}
     viewport={{ once: true }}
     transition={{ duration: 0.25, delay: i * 0.03 }}
-    className="px-3.5 py-1 text-xs font-body font-semibold tracking-wide bg-[#00C853]/15 border border-[#00C853]/30 text-[#00C853] rounded-full select-none hover:border-[#00E676] hover:bg-[#00C853]/25 transition-all duration-300"
+    className="px-3.5 py-1 text-xs font-body font-semibold tracking-wide bg-white/[0.05] border border-white/[0.08] text-white/70 rounded-full select-none hover:border-[#00C853]/50 hover:bg-[#00C853]/15 hover:text-[#00C853] transition-all duration-300"
   >
     {label}
   </motion.span>
@@ -202,7 +206,7 @@ const TechBadge = ({ label, i }) => (
 
 /* ─── Sub-Component: Metric Pill ───────────────────────────── */
 const Metric = ({ value, label }) => (
-  <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/[0.03] border border-white/5 group hover:border-[#00C853]/40 transition-all duration-300">
+  <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] group hover:border-[#00C853]/40 transition-all duration-300">
     <span className="text-xl md:text-2xl font-display font-black text-[#00E676] drop-shadow-[0_0_12px_rgba(0,230,118,0.4)] group-hover:scale-105 transition-transform">
       {value}
     </span>
@@ -212,7 +216,162 @@ const Metric = ({ value, label }) => (
   </div>
 );
 
-/* ─── Project Card (Featured Stack) ─────────────────────────────────── */
+/* ─── Sub-Component: Featured Metric (larger, for Qlue) ────── */
+const FeaturedMetric = ({ value, label }) => (
+  <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] group hover:border-[#00C853]/40 transition-all duration-400">
+    <span className="text-2xl md:text-3xl font-display font-black text-[#00E676] drop-shadow-[0_0_16px_rgba(0,230,118,0.5)] group-hover:scale-110 transition-transform duration-300">
+      {value}
+    </span>
+    <span className="text-[10px] font-body text-[#a0a0b8] font-medium tracking-wider uppercase mt-1.5 text-center">
+      {label}
+    </span>
+  </div>
+);
+
+/* ─── Sub-Component: Magnetic Button ───────────────────────── */
+const MagneticButton = ({ href, children, className = '', featured = false }) => {
+  const btnRef = useRef(null);
+
+  const handleMouseMove = (e) => {
+    if (!btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    const maxMove = featured ? 6 : 4;
+    const moveX = (x / rect.width) * maxMove * 2;
+    const moveY = (y / rect.height) * maxMove * 2;
+    btnRef.current.style.transform = `translate(${moveX}px, ${moveY}px)`;
+  };
+
+  const handleMouseLeave = () => {
+    if (!btnRef.current) return;
+    btnRef.current.style.transform = 'translate(0, 0)';
+  };
+
+  return (
+    <motion.a
+      ref={btnRef}
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(0,200,83,0.4)' }}
+      whileTap={{ scale: 0.97 }}
+      className={className}
+      style={{
+        border: '1px solid #00C853',
+        color: '#00C853',
+        transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease, color 0.3s ease',
+      }}
+    >
+      {children}
+    </motion.a>
+  );
+};
+
+/* ─── Featured Project Card (Qlue — dominant, full-width) ───────────── */
+const FeaturedProjectCard = ({ project }) => {
+  const { index, title, subtitle, description, tech, github, metrics, Visual, status } = project;
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
+
+  return (
+    <motion.article
+      ref={ref}
+      initial={{ opacity: 0, y: 40 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      className="glass-card-featured group overflow-hidden"
+    >
+      {/* Featured banner glow */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#00C853] to-transparent opacity-50" />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+        
+        {/* ── Visual Panel ────────────────────────────────── */}
+        <div className="p-6 md:p-10 flex flex-col justify-between bg-gradient-to-br from-white/[0.02] to-transparent border-b lg:border-b-0 lg:border-r border-white/[0.06]">
+          
+          {/* Top meta row */}
+          <div className="flex items-center justify-between mb-6 relative z-10">
+            <div className="flex items-center gap-3">
+              <span className="font-display font-bold text-4xl text-white/10 select-none">
+                {index}
+              </span>
+              <div className="h-5 w-px bg-white/10" />
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#00C853]/10 border border-[#00C853]/30 font-body text-[10px] text-[#00E676] font-semibold tracking-wider uppercase">
+                <span className="w-2 h-2 rounded-full bg-[#00E676] animate-pulse" />
+                <span>{status || 'LIVE'}</span>
+              </div>
+            </div>
+            <span className="font-body text-xs text-[#00C853] font-bold tracking-widest uppercase flex items-center gap-2">
+              <span className="hidden sm:inline">★</span> FLAGSHIP PROJECT
+            </span>
+          </div>
+
+          {/* Title & Subtitle */}
+          <div className="mb-8 relative z-10">
+            <h3 className="text-3xl sm:text-4xl md:text-5xl font-display font-black text-white tracking-tight leading-[0.95] group-hover:text-[#00E676] transition-colors duration-500">
+              {title}
+            </h3>
+            <p className="font-body text-xs sm:text-sm text-[#00C853] font-medium mt-3 tracking-wide uppercase">
+              {subtitle}
+            </p>
+          </div>
+
+          {/* Visual — larger for featured */}
+          <div className="relative z-10 rounded-2xl overflow-hidden bg-black/40 border border-white/[0.06] p-2">
+            <Visual />
+          </div>
+
+          {/* Metrics strip — 5 metrics for Qlue */}
+          <div className="relative z-10 mt-8 pt-6 border-t border-white/[0.08] grid grid-cols-3 sm:grid-cols-5 gap-3">
+            {metrics.map((m) => <FeaturedMetric key={m.label} {...m} />)}
+          </div>
+        </div>
+
+        {/* ── Content Panel ────────────────────────────────── */}
+        <div className="flex flex-col justify-between p-8 md:p-10 relative z-10">
+
+          {/* Description */}
+          <div>
+            <div className="flex items-center gap-2 mb-5">
+              <span className="font-body text-xs text-[#00C853] font-semibold tracking-widest uppercase">// OVERVIEW</span>
+              <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
+            </div>
+            <p className="font-body text-[#a0a0b8] text-sm md:text-base leading-relaxed">
+              {description}
+            </p>
+          </div>
+
+          {/* Tech Stack */}
+          <div className="mt-8">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="font-body text-xs text-[#00C853] font-semibold tracking-widest uppercase">// BUILT WITH</span>
+              <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
+            </div>
+            <div className="flex flex-wrap gap-2 mb-8">
+              {tech.map((t, i) => <TechBadge key={t} label={t} i={i} />)}
+            </div>
+
+            {/* GitHub CTA: Magnetic */}
+            <MagneticButton
+              href={github}
+              featured={true}
+              className="inline-flex items-center gap-3 px-8 py-4 bg-transparent font-body font-bold text-xs tracking-wider uppercase rounded-xl hover:!bg-[#00C853] hover:!text-white cursor-hover"
+            >
+              <FaGithub size={18} />
+              View on GitHub
+              <FaExternalLinkAlt size={11} className="opacity-70" />
+            </MagneticButton>
+          </div>
+
+        </div>
+      </div>
+    </motion.article>
+  );
+};
+
+/* ─── Standard Project Card (e.g. Xpensia) ─────────────────── */
 const ProjectCard = ({ project, reverse }) => {
   const { index, title, subtitle, description, tech, github, metrics, Visual, status } = project;
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
@@ -228,7 +387,7 @@ const ProjectCard = ({ project, reverse }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
         
         {/* ── Visual Panel ────────────────────────────────── */}
-        <div className={`p-6 md:p-8 flex flex-col justify-between bg-gradient-to-br from-white/[0.02] to-transparent border-b lg:border-b-0 ${reverse ? 'lg:border-l lg:order-2 border-white/5' : 'lg:border-r border-white/5'}`}>
+        <div className={`p-6 md:p-8 flex flex-col justify-between bg-gradient-to-br from-white/[0.02] to-transparent border-b lg:border-b-0 ${reverse ? 'lg:border-l lg:order-2 border-white/[0.06]' : 'lg:border-r border-white/[0.06]'}`}>
           
           {/* Top meta row */}
           <div className="flex items-center justify-between mb-6 relative z-10">
@@ -242,7 +401,7 @@ const ProjectCard = ({ project, reverse }) => {
                 <span>{status || 'LIVE'}</span>
               </div>
             </div>
-            <span className="font-body text-xs text-[#00C853] font-bold tracking-widest uppercase">
+            <span className="font-body text-xs text-white/30 font-bold tracking-widest uppercase">
               // FEATURED
             </span>
           </div>
@@ -258,12 +417,12 @@ const ProjectCard = ({ project, reverse }) => {
           </div>
 
           {/* Visual */}
-          <div className="relative z-10 rounded-2xl overflow-hidden bg-black/40 border border-white/5 p-2">
+          <div className="relative z-10 rounded-2xl overflow-hidden bg-black/40 border border-white/[0.06] p-2">
             <Visual />
           </div>
 
           {/* Metrics strip */}
-          <div className="relative z-10 mt-6 pt-5 border-t border-white/10 grid grid-cols-3 gap-4">
+          <div className="relative z-10 mt-6 pt-5 border-t border-white/[0.08] grid grid-cols-3 gap-4">
             {metrics.map((m) => <Metric key={m.label} {...m} />)}
           </div>
         </div>
@@ -292,23 +451,15 @@ const ProjectCard = ({ project, reverse }) => {
               {tech.map((t, i) => <TechBadge key={t} label={t} i={i} />)}
             </div>
 
-            {/* GitHub CTA: Ghost style */}
-            <motion.a
+            {/* GitHub CTA: Magnetic */}
+            <MagneticButton
               href={github}
-              target="_blank"
-              rel="noopener noreferrer"
-              whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(0,200,83,0.4)' }}
-              whileTap={{ scale: 0.98 }}
-              style={{
-                border: '1px solid #00C853',
-                color: '#00C853'
-              }}
-              className="inline-flex items-center gap-3 px-7 py-3.5 bg-transparent font-body font-bold text-xs tracking-wider uppercase rounded-xl transition-all duration-300 hover:!bg-[#00C853] hover:!text-white"
+              className="inline-flex items-center gap-3 px-7 py-3.5 bg-transparent font-body font-bold text-xs tracking-wider uppercase rounded-xl hover:!bg-[#00C853] hover:!text-white cursor-hover"
             >
               <FaGithub size={16} />
               View on GitHub
               <FaExternalLinkAlt size={11} className="opacity-70" />
-            </motion.a>
+            </MagneticButton>
           </div>
 
         </div>
@@ -317,23 +468,28 @@ const ProjectCard = ({ project, reverse }) => {
   );
 };
 
-/* ─── Categorized Project Card (Liquid Glass) ─────────────────────────────── */
-const CategorizedProjectCard = ({ project }) => {
+/* ─── Categorized Project Card (Dark glass + hover payoff) ─────────── */
+const CategorizedProjectCard = ({ project, cardIndex }) => {
   const { index, title, description, tech, github, badge, status } = project;
 
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ duration: 0.3 }}
-      className="glass-card p-6 md:p-7 flex flex-col justify-between h-full group hover:!border-[#00E676]/50"
+      initial={{ opacity: 0, y: 20, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -10, scale: 0.97 }}
+      transition={{ duration: 0.4, delay: cardIndex * 0.08, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ 
+        scale: 1.02, 
+        y: -6,
+        transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] }
+      }}
+      className="glass-card p-6 md:p-7 flex flex-col justify-between h-full group"
     >
       {/* Header section */}
       <div className="relative z-10 mb-6 flex-1 flex flex-col">
         <div className="flex items-center justify-between mb-3.5">
-          <span className="font-body text-[10px] tracking-wider text-[#00C853] font-bold uppercase block px-3 py-1 bg-white/5 border border-white/10 rounded-full truncate max-w-[70%]">
+          <span className="font-body text-[10px] tracking-wider text-white/50 font-bold uppercase block px-3 py-1 bg-white/[0.04] border border-white/[0.06] rounded-full truncate max-w-[70%]">
             {badge}
           </span>
           <div className="flex items-center gap-1.5 font-body text-[10px] text-[#00E676] font-semibold tracking-wider flex-shrink-0">
@@ -346,7 +502,7 @@ const CategorizedProjectCard = ({ project }) => {
           <h4 className="font-display font-bold text-lg md:text-xl text-white group-hover:text-[#00E676] transition-colors duration-300 leading-snug">
             {title}
           </h4>
-          <span className="font-body text-xs text-[#00C853]/60 font-bold select-none flex-shrink-0">{index}</span>
+          <span className="font-body text-xs text-white/15 font-bold select-none flex-shrink-0">{index}</span>
         </div>
 
         <p className="font-body text-[#a0a0b8] text-xs md:text-sm leading-relaxed mt-3">
@@ -355,41 +511,29 @@ const CategorizedProjectCard = ({ project }) => {
       </div>
 
       {/* Footer section: tech stack + repo link */}
-      <div className="relative z-10 pt-5 border-t border-white/10 mt-auto flex flex-col gap-4">
+      <div className="relative z-10 pt-5 border-t border-white/[0.06] mt-auto flex flex-col gap-4">
         <div className="flex flex-wrap gap-1.5">
           {tech.map((t) => (
             <span 
               key={t}
-              style={{
-                background: 'rgba(0, 200, 83, 0.12)',
-                color: '#00C853',
-                border: '1px solid rgba(0, 200, 83, 0.3)',
-                borderRadius: '50px'
-              }}
-              className="px-2.5 py-0.5 text-[10px] font-body font-semibold uppercase tracking-wide"
+              className="px-2.5 py-0.5 text-[10px] font-body font-semibold uppercase tracking-wide bg-white/[0.04] border border-white/[0.06] text-white/50 rounded-full hover:border-[#00C853]/40 hover:text-[#00C853] hover:bg-[#00C853]/10 transition-all duration-300"
             >
               {t}
             </span>
           ))}
         </div>
 
-        {/* View on GitHub Ghost button */}
-        <a
+        {/* View on GitHub — magnetic */}
+        <MagneticButton
           href={github}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            border: '1px solid #00C853',
-            color: '#00C853'
-          }}
-          className="inline-flex items-center justify-between gap-2 py-2.5 px-4 bg-transparent hover:!bg-[#00C853] hover:!text-white rounded-xl font-body text-xs font-bold tracking-wider uppercase transition-all duration-300 w-full group/btn"
+          className="inline-flex items-center justify-between gap-2 py-2.5 px-4 bg-transparent hover:!bg-[#00C853] hover:!text-white rounded-xl font-body text-xs font-bold tracking-wider uppercase w-full group/btn cursor-hover"
         >
           <span className="flex items-center gap-2">
             <FaGithub size={14} />
             View on GitHub
           </span>
           <FaExternalLinkAlt size={10} className="opacity-60 group-hover/btn:opacity-100 transition-all" />
-        </a>
+        </MagneticButton>
       </div>
     </motion.div>
   );
@@ -443,22 +587,24 @@ const Projects = () => {
           </div>
         </ScrollReveal>
 
-        {/* ── Featured Project Cards Stack ──────────────────── */}
+        {/* ── Featured Project Card Stack ──────────────────── */}
         <div className="flex flex-col gap-10 mb-24">
           {projects.map((project, i) => (
-            <ProjectCard key={project.id} project={project} reverse={i % 2 !== 0} />
+            project.featured 
+              ? <FeaturedProjectCard key={project.id} project={project} />
+              : <ProjectCard key={project.id} project={project} reverse={i % 2 !== 0} />
           ))}
         </div>
 
-        {/* ── Tab Bar Header & Categorized Grid with Gradient Underline Divider ────── */}
-        <div className="pt-12 border-t border-white/10">
+        {/* ── Tab Bar Header & Categorized Grid ────── */}
+        <div className="pt-12 border-t border-white/[0.06]">
           
           <ScrollReveal>
             <div className="flex flex-col items-center text-center mb-10">
               <span className="font-body text-xs text-[#00C853] font-semibold tracking-widest uppercase block mb-2">
                 // ARCHIVES &amp; EXPERIMENTS
               </span>
-              <h3 className="font-display font-black text-2xl sm:text-3xl text-white tracking-tight">
+              <h3 className="font-display font-bold text-xl sm:text-2xl text-white tracking-tight">
                 Explore All Key Engineering Projects
               </h3>
               <p className="font-body text-[#a0a0b8] text-xs sm:text-sm mt-1 max-w-lg">
@@ -469,7 +615,7 @@ const Projects = () => {
             </div>
           </ScrollReveal>
 
-          {/* Interactive Liquid Glass Tab Bar */}
+          {/* Interactive Tab Bar */}
           <div className="mb-12 flex flex-col items-center">
             <div className="inline-flex flex-wrap items-center justify-center gap-2 p-2 glass-card !rounded-2xl">
               {categoriesTabs.map((tab) => {
@@ -491,10 +637,10 @@ const Projects = () => {
                         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                       />
                     )}
-                    <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white animate-pulse' : 'bg-[#00C853]'}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white animate-pulse' : 'bg-white/30'}`} />
                     <span>{tab.label}</span>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-[#00C853]/15 text-[#00C853]'
+                      isActive ? 'bg-white/20 text-white' : 'bg-white/[0.06] text-white/40'
                     }`}>
                       [{tab.count}]
                     </span>
@@ -504,14 +650,14 @@ const Projects = () => {
             </div>
           </div>
 
-          {/* Filtered Projects Grid */}
+          {/* Filtered Projects Grid — staggered entry */}
           <motion.div 
             layout 
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch"
           >
             <AnimatePresence mode="popLayout">
-              {filteredProjects.map((project) => (
-                <CategorizedProjectCard key={project.id} project={project} />
+              {filteredProjects.map((project, i) => (
+                <CategorizedProjectCard key={project.id} project={project} cardIndex={i} />
               ))}
             </AnimatePresence>
           </motion.div>

@@ -5,7 +5,7 @@ const Footer = () => {
     <footer 
       style={{
         background: 'rgba(0, 0, 0, 0.6)',
-        borderTop: '1px solid rgba(0, 200, 83, 0.15)'
+        borderTop: '1px solid rgba(255, 255, 255, 0.06)'
       }}
       className="relative py-12 overflow-hidden backdrop-blur-md"
     >

@@ -33,9 +33,9 @@ const Counter = ({ target, suffix = '', prefix = '', label, sub }) => {
   return (
     <div ref={ref} className="glass-card flex flex-col items-center justify-center gap-1.5 group p-6 transition-all duration-300">
       <div className="text-[2.6rem] md:text-[3.2rem] font-display font-black leading-none flex items-center">
-        <span className="text-[#00C853] text-2xl mr-0.5">{prefix}</span>
+        <span className="text-white/30 text-2xl mr-0.5">{prefix}</span>
         <span className="text-[#00E676] drop-shadow-[0_0_15px_rgba(0,230,118,0.4)] group-hover:drop-shadow-[0_0_25px_rgba(0,230,118,0.7)] transition-all duration-300">{count}</span>
-        <span className="text-[#00C853] text-2xl ml-0.5">{suffix}</span>
+        <span className="text-white/30 text-2xl ml-0.5">{suffix}</span>
       </div>
       <div className="font-body text-xs font-semibold tracking-wider text-white uppercase text-center mt-1">{label}</div>
       {sub && <div className="font-body text-[11px] text-[#a0a0b8] text-center">{sub}</div>}
@@ -50,13 +50,13 @@ const TimelineItem = ({ role, company, period, desc, delay, isLast }) => (
       {/* Line + dot */}
       <div className="flex flex-col items-center">
         <div className="w-3 h-3 rounded-full bg-[#00C853] shadow-[0_0_10px_rgba(0,200,83,0.6)] flex-shrink-0 mt-1.5" />
-        {!isLast && <div className="w-px flex-1 bg-gradient-to-b from-[#00C853]/40 to-transparent mt-1" />}
+        {!isLast && <div className="w-px flex-1 bg-gradient-to-b from-white/10 to-transparent mt-1" />}
       </div>
       {/* Content */}
       <div className="pb-6 group">
         <span className="font-body text-[11px] text-[#00E676] font-medium tracking-wide uppercase">{period}</span>
         <h4 className="font-display font-bold text-white text-sm md:text-base mt-0.5 group-hover:text-[#00C853] transition-colors duration-300">{role}</h4>
-        <p className="font-body text-xs text-[#00C853] font-medium mb-1.5">@ {company}</p>
+        <p className="font-body text-xs text-white/40 font-medium mb-1.5">@ {company}</p>
         <p className="font-body text-[#a0a0b8] text-xs leading-relaxed">{desc}</p>
       </div>
     </div>
@@ -70,7 +70,7 @@ const AchievementBadge = ({ icon, title, sub, delay }) => (
       <span className="text-xl flex-shrink-0 mt-0.5">{icon}</span>
       <div>
         <p className="font-body text-white text-xs font-semibold leading-tight">{title}</p>
-        <p className="font-body text-[11px] text-[#00E676]/80 mt-1">{sub}</p>
+        <p className="font-body text-[11px] text-[#a0a0b8] mt-1">{sub}</p>
       </div>
     </div>
   </ScrollReveal>
@@ -120,7 +120,7 @@ const About = () => {
               <span className="font-body text-xs text-[#00C853] font-semibold tracking-widest uppercase block">
                 // 02 · ABOUT ME
               </span>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full shadow-sm backdrop-blur-md">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/[0.04] border border-white/[0.06] rounded-full shadow-sm backdrop-blur-md">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#00E676] animate-pulse" />
                 <span className="font-body text-[10px] text-white font-medium tracking-wider uppercase">AVAILABLE FOR OPPORTUNITIES</span>
               </div>
@@ -136,7 +136,7 @@ const About = () => {
           </div>
         </ScrollReveal>
 
-        {/* ── Stat Counters Row (Each individual glass-card with hover glow) ── */}
+        {/* ── Stat Counters Row ── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-14">
           <ScrollReveal delay={0.05}><Counter target={18} suffix="+" label="Months Experience" sub="Trainee & Ambassador Roles" /></ScrollReveal>
           <ScrollReveal delay={0.12}><Counter target={500} suffix="+" label="LinkedIn Connections" sub="Professional Network" /></ScrollReveal>
@@ -149,7 +149,7 @@ const About = () => {
           {/* ── LEFT (2 cols) ─────────────────────────────── */}
           <div className="lg:col-span-2 flex flex-col gap-7">
 
-            {/* Bio Card in glass-card class */}
+            {/* Bio Card */}
             <ScrollReveal delay={0.1} direction="left">
               <div className="glass-card p-7 group">
                 <div className="flex items-center gap-2 mb-5">
@@ -173,8 +173,8 @@ const About = () => {
             <ScrollReveal delay={0.2} direction="left">
               <div className="glass-card p-6 md:p-7">
                 <div className="flex items-center gap-3 mb-7">
-                  <span className="font-body text-xs text-[#00C853] font-semibold tracking-widest uppercase">// EXPERIENCE</span>
-                  <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
+                  <span className="font-body text-xs text-white/40 font-semibold tracking-widest uppercase">// EXPERIENCE</span>
+                  <div className="flex-1 h-px bg-gradient-to-r from-white/[0.06] to-transparent" />
                 </div>
                 <div className="flex flex-col">
                   {timeline.map((item, i) => (
@@ -188,8 +188,8 @@ const About = () => {
             <div className="flex flex-col gap-3">
               <ScrollReveal>
                 <div className="flex items-center gap-3 mb-1">
-                  <span className="font-body text-xs text-[#00C853] font-semibold tracking-widest uppercase">// ACHIEVEMENTS</span>
-                  <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
+                  <span className="font-body text-xs text-white/40 font-semibold tracking-widest uppercase">// ACHIEVEMENTS</span>
+                  <div className="flex-1 h-px bg-gradient-to-r from-white/[0.06] to-transparent" />
                 </div>
               </ScrollReveal>
               {achievements.map((a, i) => <AchievementBadge key={i} {...a} />)}
@@ -197,13 +197,13 @@ const About = () => {
 
           </div>
 
-          {/* ── RIGHT (3 cols) — Enhanced Terminal Glass Box ────────── */}
+          {/* ── RIGHT (3 cols) — Terminal: KEEPS green border (intentional hero) ── */}
           <ScrollReveal delay={0.15} direction="right" className="lg:col-span-3">
             <div className="sticky top-28 lg:top-28">
 
-              {/* Profile image border & Glass Terminal card: border: 2px solid rgba(0, 200, 83, 0.4) with a soft glow */}
+              {/* Terminal card: green border preserved — this is the hero element */}
               <div 
-                className="glass-card overflow-hidden group transition-all duration-300"
+                className="glass-card-featured overflow-hidden group transition-all duration-300"
                 style={{
                   border: '2px solid rgba(0, 200, 83, 0.4)',
                   boxShadow: '0 0 35px rgba(0, 200, 83, 0.2), 0 20px 50px rgba(0, 0, 0, 0.8)'
@@ -211,7 +211,7 @@ const About = () => {
               >
 
                 {/* Title Bar */}
-                <div className="bg-white/[0.03] border-b border-white/10 px-5 py-4 flex items-center justify-between select-none">
+                <div className="bg-white/[0.03] border-b border-white/[0.06] px-5 py-4 flex items-center justify-between select-none">
                   <div className="flex gap-2 items-center">
                     {[['#FF5F56'], ['#FFBD2E'], ['#27C93F']].map(([bg], i) => (
                       <span
@@ -240,7 +240,7 @@ const About = () => {
                 <TerminalTyping />
 
                 {/* Bottom status bar */}
-                <div className="border-t border-white/10 bg-white/[0.02] px-5 py-2.5 flex items-center justify-between">
+                <div className="border-t border-white/[0.06] bg-white/[0.02] px-5 py-2.5 flex items-center justify-between">
                   <div className="flex items-center gap-3 font-body text-[10px] text-[#a0a0b8] font-medium tracking-wide">
                     <span className="text-[#00C853]">●</span>
                     <span>main</span>
@@ -255,17 +255,12 @@ const About = () => {
 
               </div>
 
-              {/* Tech stack badges below terminal */}
+              {/* Tech stack badges below terminal — de-greened borders */}
               <div className="mt-6 flex flex-wrap gap-2.5 justify-center">
                 {['Flutter', 'Node.js', 'AWS Lambda', 'Spring Boot', 'Docker', 'MongoDB', 'Firebase', 'React'].map((t) => (
                   <span
                     key={t}
-                    style={{
-                      background: 'rgba(0, 200, 83, 0.12)',
-                      color: '#00C853',
-                      border: '1px solid rgba(0, 200, 83, 0.3)'
-                    }}
-                    className="px-3.5 py-1.5 font-body text-xs font-semibold tracking-wide rounded-full cursor-default transition-transform hover:-translate-y-0.5 hover:shadow-[0_0_15px_rgba(0,200,83,0.3)]"
+                    className="px-3.5 py-1.5 font-body text-xs font-semibold tracking-wide rounded-full cursor-default transition-all duration-300 bg-white/[0.04] border border-white/[0.08] text-[#00C853] hover:-translate-y-0.5 hover:shadow-[0_0_15px_rgba(0,200,83,0.3)] hover:border-[#00C853]/40"
                   >
                     {t}
                   </span>

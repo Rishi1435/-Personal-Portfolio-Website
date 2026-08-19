@@ -94,7 +94,7 @@ const Contact = () => {
             <div className="lg:col-span-5 flex flex-col justify-between p-7 md:p-8 glass-card">
               <div className="space-y-8 relative z-10">
                 {/* Header Widget */}
-                <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
                   <span className="font-body text-xs text-[#00C853] font-semibold tracking-wider uppercase">CONTACT INFO</span>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#00E676] animate-pulse" />
@@ -160,7 +160,7 @@ const Contact = () => {
 
             {/* Right Panel: Futuristic Contact Console Form */}
             <div className="lg:col-span-7 p-7 md:p-8 glass-card">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-4 mb-6">
                 <span className="font-body text-xs text-[#00C853] font-semibold tracking-wider uppercase">SEND A MESSAGE</span>
                 <span className="font-body text-[10px] text-[#a0a0b8] font-medium tracking-wide">SECURE SSL</span>
               </div>

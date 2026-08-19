@@ -111,7 +111,7 @@ const skillCategories = [
 const Marquee = () => {
   const doubled = [...allSkills, ...allSkills];
   return (
-    <div className="relative overflow-hidden py-6 mb-16 border-y border-white/10 [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
+    <div className="relative overflow-hidden py-6 mb-16 border-y border-white/[0.06] [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
       <div 
         className="flex gap-6 whitespace-nowrap w-max"
         style={{
@@ -127,10 +127,10 @@ const Marquee = () => {
                 borderRadius: '50px',
                 padding: '8px 16px'
               }}
-              className="glass-card flex items-center gap-3 transition-all duration-300 cursor-default flex-shrink-0 group hover:border-[#00C853]"
+              className="glass-card flex items-center gap-3 transition-all duration-300 cursor-default flex-shrink-0 group"
             >
-              <Icon className="text-[#00C853] text-lg group-hover:text-[#00E676] transition-colors duration-300" />
-              <span className="font-body text-xs font-semibold tracking-wide text-white uppercase group-hover:text-[#00E676] transition-colors duration-300">
+              <Icon className="text-white/40 text-lg group-hover:text-[#00E676] transition-colors duration-300" />
+              <span className="font-body text-xs font-semibold tracking-wide text-white/60 uppercase group-hover:text-[#00E676] transition-colors duration-300">
                 {skill.name}
               </span>
             </div>
@@ -147,21 +147,21 @@ const Marquee = () => {
   );
 };
 
-/* ─── Skill Icon Tile (Liquid Glass Pill) ─────────────── */
+/* ─── Skill Icon Tile (Dark glass pill — green on hover) ─────── */
 const SkillTile = ({ name, icon: Icon, index, speciality }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ delay: index * 0.04, duration: 0.3 }}
+      transition={{ delay: index * 0.07, duration: 0.35 }}
       style={{
         borderRadius: '50px',
         padding: '8px 16px'
       }}
-      className="glass-card flex items-center gap-3 group transition-all duration-300 cursor-default flex-1 min-w-[160px] hover:!border-[#00C853]"
+      className="glass-card flex items-center gap-3 group transition-all duration-300 cursor-default flex-1 min-w-[160px]"
     >
-      <div className="text-[#00C853] group-hover:text-[#00E676] transition-colors duration-300 flex-shrink-0">
+      <div className="text-white/40 group-hover:text-[#00E676] transition-colors duration-300 flex-shrink-0">
         <Icon className="text-[1.3rem]" />
       </div>
       <div className="flex flex-col min-w-0">
@@ -178,7 +178,7 @@ const SkillTile = ({ name, icon: Icon, index, speciality }) => {
   );
 };
 
-/* ─── Category Card (Liquid Glass) ────────────────────────────────── */
+/* ─── Category Card (Dark glass — increased stagger) ────────── */
 const CategoryCard = ({ title, label, desc, skills, color, index }) => {
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
   return (
@@ -186,21 +186,21 @@ const CategoryCard = ({ title, label, desc, skills, color, index }) => {
       ref={ref}
       initial={{ opacity: 0, y: 20 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ delay: index * 0.08, duration: 0.5, ease: 'easeOut' }}
+      transition={{ delay: index * 0.12, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       className="glass-card p-6 md:p-7 h-full flex flex-col justify-between group"
     >
       <div>
         {/* Header */}
         <div className="flex items-start justify-between mb-5">
           <div>
-            <span className="font-body text-[10px] tracking-widest uppercase mb-1 block text-[#00C853] font-semibold">{label} · CATEGORY</span>
+            <span className="font-body text-[10px] tracking-widest uppercase mb-1 block text-white/40 font-semibold">{label} · CATEGORY</span>
             <h3 className="font-display font-bold text-lg md:text-xl text-white tracking-tight group-hover:text-[#00E676] transition-colors duration-300">
               {title}
             </h3>
             <p className="font-body text-xs text-[#a0a0b8] mt-1">{desc}</p>
           </div>
           <span
-            className="font-display font-black text-4xl leading-none select-none opacity-10"
+            className="font-display font-black text-4xl leading-none select-none opacity-[0.06]"
             style={{ color }}
           >
             {label}
@@ -208,7 +208,7 @@ const CategoryCard = ({ title, label, desc, skills, color, index }) => {
         </div>
 
         {/* Divider */}
-        <div className="h-px mb-5 bg-gradient-to-r from-white/10 via-white/5 to-transparent" />
+        <div className="h-px mb-5 bg-gradient-to-r from-white/[0.06] via-white/[0.03] to-transparent" />
 
         {/* Skill tiles */}
         <div className="flex flex-wrap gap-2.5">

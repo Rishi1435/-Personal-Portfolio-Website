@@ -14,7 +14,7 @@ const Hero = () => {
       <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vh] bg-[radial-gradient(circle,rgba(0,200,83,0.12)_0%,transparent_60%)] pointer-events-none z-0 animate-[pulse_6s_ease-in-out_infinite_delay-2s]" />
 
       {/* Decorative Border Frame — desktop only */}
-      <div className="absolute top-[8%] bottom-[8%] left-[6%] right-[6%] border border-[rgba(0,200,83,0.12)] rounded-lg pointer-events-none z-0 hidden lg:block" />
+      <div className="absolute top-[8%] bottom-[8%] left-[6%] right-[6%] border border-[rgba(255,255,255,0.04)] rounded-lg pointer-events-none z-0 hidden lg:block" />
 
       <div className="container max-w-[1280px] mx-auto px-4 sm:px-6 md:px-12 relative z-10 w-full">
 
@@ -28,7 +28,7 @@ const Hero = () => {
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.25 }}
             className="hidden lg:flex lg:col-span-1 flex-col justify-center items-start z-40"
           >
-            <div className="w-full bg-[#080808]/75 backdrop-blur-md border border-[rgba(0,200,83,0.15)] rounded-xl p-5 shadow-[0_4px_30px_rgba(0,0,0,0.8)] relative overflow-hidden group hover:border-[rgba(0,200,83,0.3)] transition-all duration-300">
+            <div className="w-full bg-[#080808]/75 backdrop-blur-md border border-[rgba(255,255,255,0.06)] rounded-xl p-5 shadow-[0_4px_30px_rgba(0,0,0,0.8)] relative overflow-hidden group hover:border-[rgba(0,200,83,0.3)] transition-all duration-300">
               <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-accent to-transparent opacity-30" />
               <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
                 <div className="flex items-center gap-2">
@@ -135,7 +135,7 @@ const Hero = () => {
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.25 }}
             className="lg:col-span-1 w-full flex flex-col justify-center items-center z-40"
           >
-            <div className="w-full bg-[#080808]/75 backdrop-blur-md border border-[rgba(0,200,83,0.15)] rounded-xl p-5 shadow-[0_4px_30px_rgba(0,0,0,0.8)] relative overflow-hidden group hover:border-[rgba(0,200,83,0.3)] transition-all duration-300">
+            <div className="w-full bg-[#080808]/75 backdrop-blur-md border border-[rgba(255,255,255,0.06)] rounded-xl p-5 shadow-[0_4px_30px_rgba(0,0,0,0.8)] relative overflow-hidden group hover:border-[rgba(0,200,83,0.3)] transition-all duration-300">
               <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-accent to-transparent opacity-30" />
               <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
                 <div className="flex items-center gap-2">
