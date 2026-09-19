@@ -1,5 +1,8 @@
-import RishiPic from '../assets/images/Rishi\'s_Pic.png';
-import RishiResume from '../assets/files/Rishi_Resume(new).pdf';
+import RishiPicAvif from '../assets/images/rishi-portrait.avif';
+import RishiPicWebp from '../assets/images/rishi-portrait.webp';
+
+// Résumé is the single canonical copy served from /public.
+const RishiResume = '/Rishi_Pediredla_Resume.pdf';
 import { FaTerminal, FaMapMarkerAlt, FaEnvelope, FaChevronRight } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 
@@ -94,15 +97,23 @@ const Hero = () => {
                 }}
                 className="h-full w-full flex items-end justify-center"
               >
-                <img
-                  src={RishiPic}
-                  alt="Rishi Pediredla"
-                  className="h-full w-auto object-contain drop-shadow-[0_0_35px_rgba(0,200,83,0.25)]"
-                  style={{
-                    WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%)',
-                    maskImage: 'linear-gradient(to top, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%)'
-                  }}
-                />
+                <picture className="h-full w-auto flex items-end justify-center">
+                  <source srcSet={RishiPicAvif} type="image/avif" />
+                  <source srcSet={RishiPicWebp} type="image/webp" />
+                  <img
+                    src={RishiPicWebp}
+                    alt="Portrait of Rishi Pediredla, Full Stack Developer"
+                    width={800}
+                    height={1067}
+                    fetchPriority="high"
+                    decoding="async"
+                    className="h-full w-auto object-contain drop-shadow-[0_0_35px_rgba(0,200,83,0.25)]"
+                    style={{
+                      WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%)',
+                      maskImage: 'linear-gradient(to top, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%)'
+                    }}
+                  />
+                </picture>
               </motion.div>
             </motion.div>
 

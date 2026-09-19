@@ -49,3 +49,27 @@ Commit: `7b0d7f4` (pre-brief `main`)
 
 This is the number every later phase improves against. Re-measured after Phase 1
 and again in Phase 6 (see below).
+
+---
+
+## After Phase 1 — Critical performance & correctness
+
+| Metric | Baseline | After Phase 1 | Δ |
+| --- | --- | --- | --- |
+| **Performance score** | 41 | **75** | **+34** |
+| **LCP** | 11.0 s | **3.2 s** | **−7.8 s** |
+| **TBT** | 1,250 ms | **460 ms** | −790 ms |
+| **CLS** | 0.038 | **0** | −0.038 |
+| First Contentful Paint | 3.2 s | 2.7 s | −0.5 s |
+| Speed Index | 5.2 s | 4.6 s | −0.6 s |
+
+**What moved the needle:**
+
+- Removing the fixed 3.8s loading gate (now dismisses on the real `load` event with
+  a 550ms floor, or instantly on tap/Escape) let the hero paint as soon as it was ready.
+- The hero image went from a 1.6 MB PNG to a 38 KB AVIF / 49 KB WebP `<picture>` at
+  the actual rendered resolution, with `fetchpriority="high"` — this is the LCP element.
+- Explicit `width`/`height` on the `<img>` drove CLS to 0.
+
+LCP is now gated mainly by First Contentful Paint (the client bundle must execute
+before anything paints). Phase 2's meta/prerender work targets that ceiling.

@@ -9,24 +9,32 @@ import Footer from './components/Footer';
 import LoadingScreen from './components/LoadingScreen';
 import { motion, useScroll, useSpring, AnimatePresence } from 'framer-motion';
 
+const isFinePointer = () =>
+  typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches;
+
 /* ─── Custom Cursor (desktop only, pointer:fine) ─────────────── */
 const CustomCursor = () => {
   const dotRef = useRef(null);
   const ringRef = useRef(null);
   const mousePos = useRef({ x: -100, y: -100 });
   const ringPos = useRef({ x: -100, y: -100 });
+  const hoveringRef = useRef(false);
   const rafId = useRef(null);
-  const [hovering, setHovering] = useState(false);
+  // Computed once — never changes for the lifetime of the mount.
+  const [enabled] = useState(isFinePointer);
 
   useEffect(() => {
-    // Check for fine pointer (no touch devices)
-    if (!window.matchMedia('(pointer: fine)').matches) return;
+    // Runs exactly once on mount. `hovering` is read from a ref inside the RAF
+    // loop, so entering/leaving a hover target no longer tears down and rebuilds
+    // the loop and its listeners.
+    if (!enabled) return;
 
     const handleMouseMove = (e) => {
       mousePos.current = { x: e.clientX, y: e.clientY };
     };
 
     const animate = () => {
+      const hovering = hoveringRef.current;
       // Dot follows instantly
       if (dotRef.current) {
         dotRef.current.style.transform = `translate(${mousePos.current.x - (hovering ? 7 : 4)}px, ${mousePos.current.y - (hovering ? 7 : 4)}px)`;
@@ -40,18 +48,16 @@ const CustomCursor = () => {
       rafId.current = requestAnimationFrame(animate);
     };
 
-    const handleMouseOver = (e) => {
-      const target = e.target;
-      if (target.closest('a, button, [role="button"], input, textarea, select, .cursor-hover')) {
-        setHovering(true);
-      }
+    // Toggle the visual state directly on the nodes — no React re-render.
+    const setHover = (state) => {
+      hoveringRef.current = state;
+      dotRef.current?.classList.toggle('hovering', state);
+      ringRef.current?.classList.toggle('hovering', state);
     };
-    const handleMouseOut = (e) => {
-      const target = e.target;
-      if (target.closest('a, button, [role="button"], input, textarea, select, .cursor-hover')) {
-        setHovering(false);
-      }
-    };
+    const isTarget = (el) =>
+      el?.closest?.('a, button, [role="button"], input, textarea, select, .cursor-hover');
+    const handleMouseOver = (e) => { if (isTarget(e.target)) setHover(true); };
+    const handleMouseOut = (e) => { if (isTarget(e.target)) setHover(false); };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     document.addEventListener('mouseover', handleMouseOver, { passive: true });
@@ -64,23 +70,34 @@ const CustomCursor = () => {
       document.removeEventListener('mouseout', handleMouseOut);
       if (rafId.current) cancelAnimationFrame(rafId.current);
     };
-  }, [hovering]);
+  }, [enabled]);
 
-  // Only render on pointer:fine devices
-  if (typeof window !== 'undefined' && !window.matchMedia('(pointer: fine)').matches) {
-    return null;
-  }
+  if (!enabled) return null;
 
   return (
     <>
-      <div ref={dotRef} className={`custom-cursor-dot ${hovering ? 'hovering' : ''}`} />
-      <div ref={ringRef} className={`custom-cursor-ring ${hovering ? 'hovering' : ''}`} />
+      <div ref={dotRef} className="custom-cursor-dot" />
+      <div ref={ringRef} className="custom-cursor-ring" />
     </>
   );
 };
 
+// Show the boot screen only on the first visit of a session, and never when the
+// visitor has asked for reduced motion.
+const shouldShowLoader = () => {
+  if (typeof window === 'undefined') return false;
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const visited = window.sessionStorage?.getItem('visited') === 'true';
+  return !prefersReduced && !visited;
+};
+
+// Minimum time the boot animation stays up so it doesn't flash-and-vanish.
+const LOADER_FLOOR_MS = 550;
+// Hard safety cap: scroll is never locked longer than this, even if `load` stalls.
+const LOADER_MAX_MS = 2000;
+
 function App() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(shouldShowLoader);
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
@@ -89,11 +106,49 @@ function App() {
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (!loading) return;
+
+    // Mark the session as visited so a reload/return skips the boot screen.
+    try { window.sessionStorage.setItem('visited', 'true'); } catch { /* private mode */ }
+
+    const startedAt = performance.now();
+    let dismissed = false;
+    let floorTimer;
+
+    const dismiss = () => {
+      if (dismissed) return;
+      dismissed = true;
       setLoading(false);
-    }, 3800); // Allow boot sequence animation to complete
-    return () => clearTimeout(timer);
-  }, []);
+    };
+
+    // Dismiss once the page is actually loaded, but not before the floor elapses.
+    const dismissAfterFloor = () => {
+      const remaining = Math.max(0, LOADER_FLOOR_MS - (performance.now() - startedAt));
+      floorTimer = setTimeout(dismiss, remaining);
+    };
+
+    if (document.readyState === 'complete') {
+      dismissAfterFloor();
+    } else {
+      window.addEventListener('load', dismissAfterFloor, { once: true });
+    }
+
+    // Safety cap so a hung asset can't hold the overlay (and scroll lock) forever.
+    const maxTimer = setTimeout(dismiss, LOADER_MAX_MS);
+
+    // Let the visitor skip immediately with a tap/click or Escape.
+    const onKeyDown = (e) => { if (e.key === 'Escape') dismiss(); };
+    window.addEventListener('pointerdown', dismiss);
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      clearTimeout(floorTimer);
+      clearTimeout(maxTimer);
+      window.removeEventListener('load', dismissAfterFloor);
+      window.removeEventListener('pointerdown', dismiss);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [loading]);
 
   useEffect(() => {
     if (loading) {
