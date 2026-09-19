@@ -34,9 +34,9 @@ const terminalData = [
   {
     cmd: 'cat achievements.log',
     output: [
-      { prefix: '[PROJECT] ', text: 'Qlue ranked in the Top 5 among all entries at Project Space: A voice-based, AI-powered mock interview platform.', color: 'text-[#00E676]' },
-      { prefix: '[ROLE] ', text: 'Campus Ambassador & Trainee @ LinkedIn: Representing LinkedIn Learning at my college (Sep 2025 – Present).', color: 'text-[#00C853]' },
-      { prefix: '[WIN] ', text: '1st Prize, CampusConnect Case Study: Led a 5-person team to 1st place among 14 universities in a national LinkedIn case study competition.', color: 'text-[#00E676]' }
+      { prefix: '[PROJECT] ', text: 'Qlue ranked in the Top 5 among all entries at Project Space: A voice-based, AI-powered mock interview platform.', color: 'text-[var(--color-accent-glow)]' },
+      { prefix: '[ROLE] ', text: 'Campus Ambassador & Trainee @ LinkedIn: Representing LinkedIn Learning at my college (Sep 2025 – Present).', color: 'text-[var(--color-accent)]' },
+      { prefix: '[WIN] ', text: '1st Prize, CampusConnect Case Study: Led a 5-person team to 1st place among 14 universities in a national LinkedIn case study competition.', color: 'text-[var(--color-accent-glow)]' }
     ],
     type: 'log'
   }
@@ -108,7 +108,7 @@ const TerminalTyping = () => {
       {visibleLines.map((block, idx) => (
         <div key={idx} className="fade-in">
           {/* Command Prompt */}
-          <div className="flex items-center text-[#00C853] gap-2 select-none font-bold">
+          <div className="flex items-center text-[var(--color-accent)] gap-2 select-none font-bold">
             <span>$</span>
             <span>{block.typedCmd}</span>
           </div>
@@ -126,7 +126,7 @@ const TerminalTyping = () => {
                     <div key={lineIdx}>
                       {line.isComment && <span className="text-[#a0a0b8] opacity-60">{line.text}</span>}
                       {line.isJSON && (
-                        <pre className="text-[#00E676] font-mono text-xs md:text-sm mt-1 whitespace-pre-wrap">
+                        <pre className="text-[var(--color-accent-glow)] font-mono text-xs md:text-sm mt-1 whitespace-pre-wrap">
                           {line.text}
                         </pre>
                       )}
@@ -153,11 +153,11 @@ const TerminalTyping = () => {
       {/* 2. Render currently typing line if not finished */}
       {currentCmdIndex < terminalData.length && inView && (
         <div>
-          <div className="flex items-center text-[#00C853] gap-2 select-none font-bold">
+          <div className="flex items-center text-[var(--color-accent)] gap-2 select-none font-bold">
             <span>$</span>
             <span className="flex items-center text-white">
               {currentTypedText}
-              <span className="w-2.5 h-4 bg-[#00E676] ml-1 animate-[pulse_0.8s_infinite]" />
+              <span className="w-2.5 h-4 bg-[var(--color-accent-glow)] ml-1 animate-[pulse_0.8s_infinite]" />
             </span>
           </div>
         </div>
@@ -165,17 +165,17 @@ const TerminalTyping = () => {
 
       {/* 3. Render idle prompt after typing everything is finished */}
       {currentCmdIndex === terminalData.length && (
-        <div className="flex items-center text-[#00C853] gap-2 select-none font-bold">
+        <div className="flex items-center text-[var(--color-accent)] gap-2 select-none font-bold">
           <span>$</span>
-          <span className="w-2.5 h-4 bg-[#00E676] animate-[pulse_0.8s_infinite]" />
+          <span className="w-2.5 h-4 bg-[var(--color-accent-glow)] animate-[pulse_0.8s_infinite]" />
         </div>
       )}
 
       {/* Initial state before scroll in */}
       {!inView && !prefersReducedMotion && (
-        <div className="flex items-center text-[#00C853] gap-2 select-none font-bold">
+        <div className="flex items-center text-[var(--color-accent)] gap-2 select-none font-bold">
           <span>$</span>
-          <span className="w-2.5 h-4 bg-[#00E676] animate-[pulse_0.8s_infinite]" />
+          <span className="w-2.5 h-4 bg-[var(--color-accent-glow)] animate-[pulse_0.8s_infinite]" />
         </div>
       )}
     </div>

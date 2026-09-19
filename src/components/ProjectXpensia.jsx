@@ -5,38 +5,38 @@ const ProjectXpensia = () => {
   const a = !prefersReducedMotion;
 
   return (
-    <div className="relative w-full h-52 flex items-center justify-center bg-[#030303] rounded-xl overflow-hidden border border-[rgba(0,200,83,0.12)] group-hover:border-[rgba(0,200,83,0.28)] transition-all duration-300">
+    <div className="relative w-full h-52 flex items-center justify-center bg-[#030303] rounded-xl overflow-hidden border border-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] group-hover:border-[color-mix(in_srgb,var(--color-accent)_28%,transparent)] transition-all duration-300">
 
       {/* Ambient glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_60%,rgba(0,200,83,0.06)_0%,transparent_70%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_60%,color-mix(in_srgb,var(--color-accent)_6%,transparent)_0%,transparent_70%)] pointer-events-none" />
 
       <svg viewBox="0 0 420 180" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
 
         {/* Grid */}
         {[40,80,120,160,200,240,280,320,360,400].map(x => (
-          <line key={x} x1={x} y1="0" x2={x} y2="180" stroke="rgba(0,200,83,0.022)" strokeWidth="1"/>
+          <line key={x} x1={x} y1="0" x2={x} y2="180" stroke="color-mix(in srgb, var(--color-accent) 2.2%, transparent)" strokeWidth="1"/>
         ))}
         {[45,90,135].map(y => (
-          <line key={y} x1="0" y1={y} x2="420" y2={y} stroke="rgba(0,200,83,0.022)" strokeWidth="1"/>
+          <line key={y} x1="0" y1={y} x2="420" y2={y} stroke="color-mix(in srgb, var(--color-accent) 2.2%, transparent)" strokeWidth="1"/>
         ))}
 
         {/* ── PHONE FRAME (center) ───────────────────────────── */}
-        <rect x="155" y="8" width="110" height="164" rx="14" fill="#0A0A0A" stroke="rgba(0,200,83,0.35)" strokeWidth="1.5"/>
+        <rect x="155" y="8" width="110" height="164" rx="14" fill="#0A0A0A" stroke="color-mix(in srgb, var(--color-accent) 35%, transparent)" strokeWidth="1.5"/>
         <rect x="188" y="12" width="44" height="6" rx="3" fill="#111"/>
         <rect x="159" y="22" width="102" height="148" rx="6" fill="#050505"/>
 
         {/* Header bar */}
         <rect x="159" y="22" width="102" height="20" rx="6" fill="#0C0C0C"/>
         <rect x="159" y="34" width="102" height="8" fill="#0C0C0C"/>
-        <text x="179" y="35" fill="#00C853" fontSize="6.5" fontFamily="monospace" fontWeight="bold">xpensia</text>
+        <text x="179" y="35" fill="var(--color-accent)" fontSize="6.5" fontFamily="monospace" fontWeight="bold">xpensia</text>
         {/* Fingerprint icon (biometric) */}
-        <circle cx="252" cy="32" r="5" fill="rgba(0,200,83,0.1)" stroke="rgba(0,200,83,0.4)" strokeWidth="0.8"/>
-        <text x="252" y="34.5" fill="#00C853" fontSize="5.5" fontFamily="monospace" textAnchor="middle">🔒</text>
+        <circle cx="252" cy="32" r="5" fill="color-mix(in srgb, var(--color-accent) 10%, transparent)" stroke="color-mix(in srgb, var(--color-accent) 40%, transparent)" strokeWidth="0.8"/>
+        <text x="252" y="34.5" fill="var(--color-accent)" fontSize="5.5" fontFamily="monospace" textAnchor="middle">🔒</text>
 
         {/* ── BALANCE CARD ───────────────────────────────────── */}
-        <rect x="163" y="46" width="94" height="30" rx="5" fill="#0D0D0D" stroke="rgba(0,200,83,0.12)" strokeWidth="0.8"/>
+        <rect x="163" y="46" width="94" height="30" rx="5" fill="#0D0D0D" stroke="color-mix(in srgb, var(--color-accent) 12%, transparent)" strokeWidth="0.8"/>
         <text x="210" y="56" fill="rgba(255,255,255,0.3)" fontSize="4.5" fontFamily="monospace" textAnchor="middle">TOTAL BALANCE</text>
-        <text x="210" y="68" fill="#00C853" fontSize="9" fontFamily="monospace" fontWeight="bold" textAnchor="middle">₹24,580</text>
+        <text x="210" y="68" fill="var(--color-accent)" fontSize="9" fontFamily="monospace" fontWeight="bold" textAnchor="middle">₹24,580</text>
 
         {/* ── MINI CHART (fl_chart bars) ─────────────────────── */}
         <text x="165" y="85" fill="rgba(255,255,255,0.2)" fontSize="4" fontFamily="monospace">MONTHLY TREND</text>
@@ -52,7 +52,7 @@ const ProjectXpensia = () => {
           { x:245, h:15, type:'C' },
         ].map(({ x, h, type }, i) => (
           <rect key={x} x={x} y={110-h} width="7" height={h} rx="2"
-            fill={type === 'C' ? 'rgba(0,200,83,0.6)' : 'rgba(255,80,80,0.4)'}>
+            fill={type === 'C' ? 'color-mix(in srgb, var(--color-accent) 60%, transparent)' : 'rgba(255,80,80,0.4)'}>
             {a && <animate attributeName="height" values={`${h*0.4};${h};${h*0.4}`}
               dur={`${1.8 + i*0.2}s`} repeatCount="indefinite"/>}
             {a && <animate attributeName="y" values={`${110-h*0.4};${110-h};${110-h*0.4}`}
@@ -63,7 +63,7 @@ const ProjectXpensia = () => {
         {/* ── TRANSACTION LIST ───────────────────────────────── */}
         {[
           { label:'Amazon Pay',   amt:'-₹899',  cat:'Shopping', color:'rgba(255,80,80,0.7)',  y:118 },
-          { label:'Salary Credit', amt:'+₹15k', cat:'Income',   color:'rgba(0,200,83,0.8)',  y:131 },
+          { label:'Salary Credit', amt:'+₹15k', cat:'Income',   color:'color-mix(in srgb, var(--color-accent) 80%, transparent)',  y:131 },
           { label:'Swiggy',       amt:'-₹340',  cat:'Food',     color:'rgba(255,80,80,0.7)',  y:144 },
         ].map(({ label, amt, color, y }) => (
           <g key={label}>
@@ -75,15 +75,15 @@ const ProjectXpensia = () => {
         ))}
 
         {/* SMS auto-detect badge */}
-        <rect x="163" y="158" width="94" height="10" rx="3" fill="rgba(0,200,83,0.08)" stroke="rgba(0,200,83,0.2)" strokeWidth="0.6">
+        <rect x="163" y="158" width="94" height="10" rx="3" fill="color-mix(in srgb, var(--color-accent) 8%, transparent)" stroke="color-mix(in srgb, var(--color-accent) 20%, transparent)" strokeWidth="0.6">
           {a && <animate attributeName="opacity" values="0.6;1;0.6" dur="2.5s" repeatCount="indefinite"/>}
         </rect>
-        <text x="210" y="165" fill="#00C853" fontSize="4.5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">
+        <text x="210" y="165" fill="var(--color-accent)" fontSize="4.5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">
           📩 SMS auto-detected: ₹899 debited
         </text>
 
         {/* ── LEFT PANEL: Feature list ───────────────────────── */}
-        <text x="12" y="22" fill="rgba(0,200,83,0.5)" fontSize="5.5" fontFamily="monospace" fontWeight="bold">FEATURES</text>
+        <text x="12" y="22" fill="color-mix(in srgb, var(--color-accent) 50%, transparent)" fontSize="5.5" fontFamily="monospace" fontWeight="bold">FEATURES</text>
         {[
           { icon:'🔥', label:'Firebase Auth',    y:36 },
           { icon:'🔍', label:'Google Sign-In',   y:51 },
@@ -95,15 +95,15 @@ const ProjectXpensia = () => {
           { icon:'💎', label:'Glassmorphism UI', y:141 },
         ].map(({ icon, label, y }) => (
           <g key={label}>
-            <rect x="6" y={y-9} width="70" height="11" rx="3" fill="#0A0A0A" stroke="rgba(0,200,83,0.1)" strokeWidth="0.6"/>
+            <rect x="6" y={y-9} width="70" height="11" rx="3" fill="#0A0A0A" stroke="color-mix(in srgb, var(--color-accent) 10%, transparent)" strokeWidth="0.6"/>
             <text x="12" y={y} fill="rgba(255,255,255,0.4)" fontSize="5" fontFamily="monospace">{icon} {label}</text>
           </g>
         ))}
 
         {/* ── RIGHT PANEL: MongoDB schema + stats ───────────── */}
-        <text x="278" y="22" fill="rgba(0,200,83,0.5)" fontSize="5.5" fontFamily="monospace" fontWeight="bold">MONGODB SCHEMA</text>
+        <text x="278" y="22" fill="color-mix(in srgb, var(--color-accent) 50%, transparent)" fontSize="5.5" fontFamily="monospace" fontWeight="bold">MONGODB SCHEMA</text>
         {/* Schema box */}
-        <rect x="278" y="28" width="132" height="68" rx="5" fill="#070707" stroke="rgba(0,200,83,0.12)" strokeWidth="0.8"/>
+        <rect x="278" y="28" width="132" height="68" rx="5" fill="#070707" stroke="color-mix(in srgb, var(--color-accent) 12%, transparent)" strokeWidth="0.8"/>
         {[
           { field:'_id',      type:'ObjectId', y:40 },
           { field:'userId',   type:'string',   y:51 },
@@ -113,15 +113,15 @@ const ProjectXpensia = () => {
           { field:'type',     type:'CR|DR',    y:95 },
         ].map(({ field, type, y }) => (
           <g key={field}>
-            <text x="285" y={y} fill="#00C853" fontSize="5" fontFamily="monospace">{field}</text>
+            <text x="285" y={y} fill="var(--color-accent)" fontSize="5" fontFamily="monospace">{field}</text>
             <text x="318" y={y} fill="rgba(255,255,255,0.25)" fontSize="5" fontFamily="monospace">: {type}</text>
           </g>
         ))}
 
         {/* Stats row */}
-        <text x="278" y="110" fill="rgba(0,200,83,0.5)" fontSize="5.5" fontFamily="monospace" fontWeight="bold">API ENDPOINTS</text>
+        <text x="278" y="110" fill="color-mix(in srgb, var(--color-accent) 50%, transparent)" fontSize="5.5" fontFamily="monospace" fontWeight="bold">API ENDPOINTS</text>
         {[
-          { method:'POST',   path:'/add',    color:'#00C853', y:125 },
+          { method:'POST',   path:'/add',    color:'var(--color-accent)', y:125 },
           { method:'GET',    path:'/all',    color:'#69F0AE', y:136 },
           { method:'PUT',    path:'/update', color:'#FFB300', y:147 },
           { method:'DELETE', path:'/delete', color:'rgba(255,80,80,0.9)', y:158 },
@@ -135,10 +135,10 @@ const ProjectXpensia = () => {
         ))}
 
         {/* Deploy badge */}
-        <rect x="278" y="168" width="130" height="10" rx="3" fill="rgba(0,200,83,0.05)" stroke="rgba(0,200,83,0.2)" strokeWidth="0.6">
+        <rect x="278" y="168" width="130" height="10" rx="3" fill="color-mix(in srgb, var(--color-accent) 5%, transparent)" stroke="color-mix(in srgb, var(--color-accent) 20%, transparent)" strokeWidth="0.6">
           {a && <animate attributeName="opacity" values="0.5;1;0.5" dur="3s" repeatCount="indefinite"/>}
         </rect>
-        <text x="343" y="175" fill="rgba(0,200,83,0.7)" fontSize="4.5" fontFamily="monospace" textAnchor="middle">
+        <text x="343" y="175" fill="color-mix(in srgb, var(--color-accent) 70%, transparent)" fontSize="4.5" fontFamily="monospace" textAnchor="middle">
           Render + Firebase · Free Tier ✓
         </text>
 

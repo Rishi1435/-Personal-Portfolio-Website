@@ -101,11 +101,11 @@ const Navbar = () => {
           href="#" 
           className="flex items-center gap-2 font-display font-bold text-xl md:text-2xl tracking-wide group"
         >
-          <span className="w-2.5 h-2.5 rounded-full bg-[#00C853] animate-pulse shadow-[0_0_12px_#00C853]" />
+          <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-accent)] animate-pulse shadow-[0_0_12px_var(--color-accent)]" />
           <span 
             className="font-black"
             style={{
-              background: 'linear-gradient(90deg, #00C853, #00E676)',
+              background: 'linear-gradient(90deg, var(--color-accent), var(--color-accent-glow))',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text'
@@ -126,7 +126,7 @@ const Navbar = () => {
                 key={link.name}
                 href={link.href}
                 className={`relative py-1 text-sm font-body font-medium tracking-wide transition-colors duration-300 flex items-center gap-1.5 ${
-                  isActive ? 'text-white font-semibold drop-shadow-[0_0_10px_rgba(0,200,83,0.5)]' : 'text-[#a0a0b8] hover:text-white'
+                  isActive ? 'text-white font-semibold drop-shadow-[0_0_10px_color-mix(in_srgb,var(--color-accent)_50%,transparent)]' : 'text-[#a0a0b8] hover:text-white'
                 }`}
               >
                 <span>{link.name}</span>
@@ -135,7 +135,7 @@ const Navbar = () => {
                 {isActive && (
                   <motion.span
                     layoutId="navbar-underline"
-                    className="absolute -bottom-1.5 left-0 right-0 h-[2px] bg-gradient-to-r from-[#00C853] to-[#00E676] shadow-[0_0_12px_rgba(0,200,83,0.8)] rounded-full"
+                    className="absolute -bottom-1.5 left-0 right-0 h-[2px] bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-glow)] shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent)_80%,transparent)] rounded-full"
                     transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                   />
                 )}
@@ -148,10 +148,10 @@ const Navbar = () => {
         <div className="hidden md:flex items-center gap-4">
           <a
             href="#contact"
-            className="relative group px-5 py-2 overflow-hidden rounded-xl border border-white/10 bg-white/5 text-white font-body text-xs font-semibold tracking-wide uppercase transition-all duration-300 hover:border-[#00C853] hover:shadow-[0_0_20px_rgba(0,200,83,0.35)] hover:bg-[#00C853]/20"
+            className="relative group px-5 py-2 overflow-hidden rounded-xl border border-white/10 bg-white/5 text-white font-body text-xs font-semibold tracking-wide uppercase transition-all duration-300 hover:border-[var(--color-accent)] hover:shadow-[0_0_20px_color-mix(in_srgb,var(--color-accent)_35%,transparent)] hover:bg-[var(--color-accent)]/20"
           >
             <span className="relative z-10 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00E676] group-hover:bg-white animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent-glow)] group-hover:bg-white animate-pulse" />
               Let's Talk
             </span>
           </a>
@@ -160,13 +160,13 @@ const Navbar = () => {
         {/* Mobile Nav Toggle */}
         <button
           ref={toggleBtnRef}
-          className="md:hidden text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#00C853] rounded cursor-pointer"
+          className="md:hidden text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] rounded cursor-pointer"
           onClick={() => setMobileMenuOpen(true)}
           aria-label="Open Menu"
           aria-expanded={mobileMenuOpen}
           aria-controls="mobile-menu"
         >
-          <svg className="w-8 h-8 text-[#00C853]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-8 h-8 text-[var(--color-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 6h16M4 12h16M4 18h16"></path>
           </svg>
         </button>
@@ -189,11 +189,11 @@ const Navbar = () => {
           >
             {/* Close Button */}
             <button
-              className="absolute top-6 right-6 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#00C853] rounded cursor-pointer"
+              className="absolute top-6 right-6 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] rounded cursor-pointer"
               onClick={() => setMobileMenuOpen(false)}
               aria-label="Close Menu"
             >
-              <svg className="w-10 h-10 text-[#00C853]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-10 h-10 text-[var(--color-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
             </button>
@@ -207,18 +207,18 @@ const Navbar = () => {
                     key={link.name}
                     href={link.href}
                     className={`font-display text-2xl md:text-3xl uppercase tracking-wider transition-colors flex items-center gap-2 ${
-                      isActive ? 'text-[#00E676] font-bold drop-shadow-[0_0_12px_rgba(0,230,118,0.6)]' : 'text-[#a0a0b8] hover:text-white'
+                      isActive ? 'text-[var(--color-accent-glow)] font-bold drop-shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent-glow)_60%,transparent)]' : 'text-[#a0a0b8] hover:text-white'
                     }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    {isActive && <span className="text-[#00C853] animate-pulse">&gt;</span>}
+                    {isActive && <span className="text-[var(--color-accent)] animate-pulse">&gt;</span>}
                     <span>{link.name}</span>
                   </a>
                 );
               })}
               <a
                 href="#contact"
-                className="mt-8 px-8 py-4 border border-[#00C853]/50 text-white bg-[linear-gradient(135deg,#00C853,#00E676)] font-body text-base font-bold tracking-wide uppercase transition-all duration-300 text-center rounded-xl shadow-[0_0_20px_rgba(0,200,83,0.4)] hover:scale-[1.02]"
+                className="mt-8 px-8 py-4 border border-[var(--color-accent)]/50 text-white bg-[linear-gradient(135deg,var(--color-accent),var(--color-accent-glow))] font-body text-base font-bold tracking-wide uppercase transition-all duration-300 text-center rounded-xl shadow-[0_0_20px_color-mix(in_srgb,var(--color-accent)_40%,transparent)] hover:scale-[1.02]"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Let's Talk

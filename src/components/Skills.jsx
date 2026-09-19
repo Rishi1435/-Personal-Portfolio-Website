@@ -44,7 +44,7 @@ const skillCategories = [
     title: 'Languages',
     label: '01',
     desc: 'The languages I think in',
-    color: '#00C853',
+    color: 'var(--color-accent)',
     skills: [
       { name: 'Java',       icon: FaJava, speciality: 'Scalable Backend Development', proficiency: '95%' },
       { name: 'JavaScript', icon: SiJavascript, speciality: 'Dynamic Interface Logic', proficiency: '92%' },
@@ -59,7 +59,7 @@ const skillCategories = [
     title: 'Frameworks & Emerging Tech',
     label: '02',
     desc: 'Frameworks and emerging technologies I build with',
-    color: '#00E676',
+    color: 'var(--color-accent-glow)',
     skills: [
       { name: 'Flutter',     icon: SiFlutter, speciality: 'High Performance Mobile Apps', proficiency: '95%' },
       { name: 'Node.js',     icon: SiNodedotjs, speciality: 'Event Driven Server Logic', proficiency: '88%' },
@@ -72,7 +72,7 @@ const skillCategories = [
     title: 'Databases',
     label: '03',
     desc: 'Where data lives',
-    color: '#00C853',
+    color: 'var(--color-accent)',
     skills: [
       { name: 'MongoDB',  icon: SiMongodb, speciality: 'NoSQL Document Schema Design', proficiency: '88%' },
       { name: 'MySQL',    icon: SiMysql, speciality: 'Relational Database Architecture', proficiency: '86%' },
@@ -84,7 +84,7 @@ const skillCategories = [
     title: 'Cloud & DevOps',
     label: '04',
     desc: 'Infra I deploy & scale on',
-    color: '#00E676',
+    color: 'var(--color-accent-glow)',
     skills: [
       { name: 'AWS',        icon: FaAws, speciality: 'Cloud Resource Orchestration', proficiency: '82%' },
       { name: 'Docker',     icon: SiDocker, speciality: 'Microservice Containerization', proficiency: '85%' },
@@ -97,7 +97,7 @@ const skillCategories = [
     title: 'Tools',
     label: '05',
     desc: 'My daily workflow kit',
-    color: '#00C853',
+    color: 'var(--color-accent)',
     skills: [
       { name: 'Git',     icon: SiGit, speciality: 'Distributed Version Control', proficiency: '95%' },
       { name: 'GitHub',  icon: SiGithub, speciality: 'Collaborative Code Management', proficiency: '95%' },
@@ -129,8 +129,8 @@ const Marquee = () => {
               }}
               className="glass-card flex items-center gap-3 transition-all duration-300 cursor-default flex-shrink-0 group"
             >
-              <Icon className="text-white/40 text-lg group-hover:text-[#00E676] transition-colors duration-300" />
-              <span className="font-body text-xs font-semibold tracking-wide text-white/60 uppercase group-hover:text-[#00E676] transition-colors duration-300">
+              <Icon className="text-white/40 text-lg group-hover:text-[var(--color-accent-glow)] transition-colors duration-300" />
+              <span className="font-body text-xs font-semibold tracking-wide text-white/60 uppercase group-hover:text-[var(--color-accent-glow)] transition-colors duration-300">
                 {skill.name}
               </span>
             </div>
@@ -161,11 +161,11 @@ const SkillTile = ({ name, icon: Icon, index, speciality }) => {
       }}
       className="glass-card flex items-center gap-3 group transition-all duration-300 cursor-default flex-1 min-w-[160px]"
     >
-      <div className="text-white/40 group-hover:text-[#00E676] transition-colors duration-300 flex-shrink-0">
+      <div className="text-white/40 group-hover:text-[var(--color-accent-glow)] transition-colors duration-300 flex-shrink-0">
         <Icon className="text-[1.3rem]" />
       </div>
       <div className="flex flex-col min-w-0">
-        <span className="font-body text-xs font-semibold tracking-wide text-white group-hover:text-[#00E676] transition-colors duration-300 truncate">
+        <span className="font-body text-xs font-semibold tracking-wide text-white group-hover:text-[var(--color-accent-glow)] transition-colors duration-300 truncate">
           {name}
         </span>
         {speciality && (
@@ -194,7 +194,7 @@ const CategoryCard = ({ title, label, desc, skills, color, index }) => {
         <div className="flex items-start justify-between mb-5">
           <div>
             <span className="font-body text-[10px] tracking-widest uppercase mb-1 block text-white/40 font-semibold">{label} · CATEGORY</span>
-            <h3 className="font-display font-bold text-lg md:text-xl text-white tracking-tight group-hover:text-[#00E676] transition-colors duration-300">
+            <h3 className="font-display font-bold text-lg md:text-xl text-white tracking-tight group-hover:text-[var(--color-accent-glow)] transition-colors duration-300">
               {title}
             </h3>
             <p className="font-body text-xs text-[#a0a0b8] mt-1">{desc}</p>
@@ -237,7 +237,7 @@ const Skills = () => {
         {/* ── Header ──────────────────────────────────────── */}
         <ScrollReveal>
           <div className="mb-14">
-            <span className="font-body text-xs text-[#00C853] font-semibold tracking-widest uppercase block mb-3">
+            <span className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-widest uppercase block mb-3">
               // 03 · TECH STACK
             </span>
             <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-8">

@@ -171,7 +171,7 @@ function App() {
   }, []);
 
   return (
-    <div className="text-white font-body overflow-x-hidden min-h-screen relative selection:bg-[#00C853] selection:text-white bg-[#000000]" style={{ cursor: window.matchMedia?.('(pointer: fine)')?.matches ? 'none' : 'auto' }}>
+    <div className="text-white font-body overflow-x-hidden min-h-screen relative selection:bg-[var(--color-accent)] selection:text-white bg-[#000000]" style={{ cursor: window.matchMedia?.('(pointer: fine)')?.matches ? 'none' : 'auto' }}>
       {/* Loading Overlay */}
       <AnimatePresence>
         {loading && <LoadingScreen />}
@@ -182,7 +182,7 @@ function App() {
 
       {/* Modern Emerald Gradient Scroll Progress Bar */}
       <motion.div 
-        className="fixed top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#00C853] to-[#00E676] origin-left z-[99999] shadow-[0_0_16px_rgba(0,200,83,0.6)]" 
+        className="fixed top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-glow)] origin-left z-[99999] shadow-[0_0_16px_color-mix(in_srgb,var(--color-accent)_60%,transparent)]" 
         style={{ scaleX }} 
       />
 
@@ -190,7 +190,7 @@ function App() {
       <div 
         className="fixed inset-0 pointer-events-none z-[2] transition-opacity duration-300 hidden md:block"
         style={{
-          background: 'radial-gradient(600px circle at var(--mouse-x, 50vw) var(--mouse-y, 50vh), rgba(0, 200, 83, 0.08) 0%, rgba(0, 230, 118, 0.03) 40%, transparent 80%)'
+          background: 'radial-gradient(600px circle at var(--mouse-x, 50vw) var(--mouse-y, 50vh), color-mix(in srgb, var(--color-accent) 8%, transparent) 0%, color-mix(in srgb, var(--color-accent-glow) 3%, transparent) 40%, transparent 80%)'
         }}
       />
 

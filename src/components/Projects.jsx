@@ -198,7 +198,7 @@ const TechBadge = ({ label, i }) => (
     whileInView={{ opacity: 1, scale: 1 }}
     viewport={{ once: true }}
     transition={{ duration: 0.25, delay: i * 0.03 }}
-    className="px-3.5 py-1 text-xs font-body font-semibold tracking-wide bg-white/[0.05] border border-white/[0.08] text-white/70 rounded-full select-none hover:border-[#00C853]/50 hover:bg-[#00C853]/15 hover:text-[#00C853] transition-all duration-300"
+    className="px-3.5 py-1 text-xs font-body font-semibold tracking-wide bg-white/[0.05] border border-white/[0.08] text-white/70 rounded-full select-none hover:border-[var(--color-accent)]/50 hover:bg-[var(--color-accent)]/15 hover:text-[var(--color-accent)] transition-all duration-300"
   >
     {label}
   </motion.span>
@@ -206,8 +206,8 @@ const TechBadge = ({ label, i }) => (
 
 /* ─── Sub-Component: Metric Pill ───────────────────────────── */
 const Metric = ({ value, label }) => (
-  <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] group hover:border-[#00C853]/40 transition-all duration-300">
-    <span className="text-xl md:text-2xl font-display font-black text-[#00E676] drop-shadow-[0_0_12px_rgba(0,230,118,0.4)] group-hover:scale-105 transition-transform">
+  <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] group hover:border-[var(--color-accent)]/40 transition-all duration-300">
+    <span className="text-xl md:text-2xl font-display font-black text-[var(--color-accent-glow)] drop-shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent-glow)_40%,transparent)] group-hover:scale-105 transition-transform">
       {value}
     </span>
     <span className="text-[10px] font-body text-[#a0a0b8] font-medium tracking-wider uppercase mt-1 text-center">
@@ -218,8 +218,8 @@ const Metric = ({ value, label }) => (
 
 /* ─── Sub-Component: Featured Metric (larger, for Qlue) ────── */
 const FeaturedMetric = ({ value, label }) => (
-  <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] group hover:border-[#00C853]/40 transition-all duration-400">
-    <span className="text-2xl md:text-3xl font-display font-black text-[#00E676] drop-shadow-[0_0_16px_rgba(0,230,118,0.5)] group-hover:scale-110 transition-transform duration-300">
+  <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] group hover:border-[var(--color-accent)]/40 transition-all duration-400">
+    <span className="text-2xl md:text-3xl font-display font-black text-[var(--color-accent-glow)] drop-shadow-[0_0_16px_color-mix(in_srgb,var(--color-accent-glow)_50%,transparent)] group-hover:scale-110 transition-transform duration-300">
       {value}
     </span>
     <span className="text-[10px] font-body text-[#a0a0b8] font-medium tracking-wider uppercase mt-1.5 text-center">
@@ -256,12 +256,12 @@ const MagneticButton = ({ href, children, className = '', featured = false }) =>
       rel="noopener noreferrer"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(0,200,83,0.4)' }}
+      whileHover={{ scale: 1.03, boxShadow: '0 0 30px color-mix(in srgb, var(--color-accent) 40%, transparent)' }}
       whileTap={{ scale: 0.97 }}
       className={className}
       style={{
-        border: '1px solid #00C853',
-        color: '#00C853',
+        border: '1px solid var(--color-accent)',
+        color: 'var(--color-accent)',
         transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease, color 0.3s ease',
       }}
     >
@@ -284,7 +284,7 @@ const FeaturedProjectCard = ({ project }) => {
       className="glass-card-featured group overflow-hidden"
     >
       {/* Featured banner glow */}
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#00C853] to-transparent opacity-50" />
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[var(--color-accent)] to-transparent opacity-50" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
         
@@ -298,22 +298,22 @@ const FeaturedProjectCard = ({ project }) => {
                 {index}
               </span>
               <div className="h-5 w-px bg-white/10" />
-              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full font-body text-[10px] font-semibold tracking-wider uppercase ${status === 'ARCHIVED' ? 'bg-white/5 border border-white/10 text-white/50' : 'bg-[#00C853]/10 border border-[#00C853]/30 text-[#00E676]'}`}>
-                <span className={`w-2 h-2 rounded-full ${status === 'ARCHIVED' ? 'bg-white/30' : 'bg-[#00E676] animate-pulse'}`} />
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full font-body text-[10px] font-semibold tracking-wider uppercase ${status === 'ARCHIVED' ? 'bg-white/5 border border-white/10 text-white/50' : 'bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30 text-[var(--color-accent-glow)]'}`}>
+                <span className={`w-2 h-2 rounded-full ${status === 'ARCHIVED' ? 'bg-white/30' : 'bg-[var(--color-accent-glow)] animate-pulse'}`} />
                 <span>{status || 'SOURCE'}</span>
               </div>
             </div>
-            <span className="font-body text-xs text-[#00C853] font-bold tracking-widest uppercase flex items-center gap-2">
+            <span className="font-body text-xs text-[var(--color-accent)] font-bold tracking-widest uppercase flex items-center gap-2">
               <span className="hidden sm:inline">★</span> FLAGSHIP PROJECT
             </span>
           </div>
 
           {/* Title & Subtitle */}
           <div className="mb-8 relative z-10">
-            <h3 className="text-3xl sm:text-4xl md:text-5xl font-display font-black text-white tracking-tight leading-[0.95] group-hover:text-[#00E676] transition-colors duration-500">
+            <h3 className="text-3xl sm:text-4xl md:text-5xl font-display font-black text-white tracking-tight leading-[0.95] group-hover:text-[var(--color-accent-glow)] transition-colors duration-500">
               {title}
             </h3>
-            <p className="font-body text-xs sm:text-sm text-[#00C853] font-medium mt-3 tracking-wide uppercase">
+            <p className="font-body text-xs sm:text-sm text-[var(--color-accent)] font-medium mt-3 tracking-wide uppercase">
               {subtitle}
             </p>
           </div>
@@ -335,7 +335,7 @@ const FeaturedProjectCard = ({ project }) => {
           {/* Description */}
           <div>
             <div className="flex items-center gap-2 mb-5">
-              <span className="font-body text-xs text-[#00C853] font-semibold tracking-widest uppercase">// OVERVIEW</span>
+              <span className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-widest uppercase">// OVERVIEW</span>
               <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
             </div>
             <p className="font-body text-[#a0a0b8] text-sm md:text-base leading-relaxed">
@@ -346,7 +346,7 @@ const FeaturedProjectCard = ({ project }) => {
           {/* Tech Stack */}
           <div className="mt-8">
             <div className="flex items-center gap-2 mb-4">
-              <span className="font-body text-xs text-[#00C853] font-semibold tracking-widest uppercase">// BUILT WITH</span>
+              <span className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-widest uppercase">// BUILT WITH</span>
               <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
             </div>
             <div className="flex flex-wrap gap-2 mb-8">
@@ -357,7 +357,7 @@ const FeaturedProjectCard = ({ project }) => {
             <MagneticButton
               href={github}
               featured={true}
-              className="inline-flex items-center gap-3 px-8 py-4 bg-transparent font-body font-bold text-xs tracking-wider uppercase rounded-xl hover:!bg-[#00C853] hover:!text-white cursor-hover"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-transparent font-body font-bold text-xs tracking-wider uppercase rounded-xl hover:!bg-[var(--color-accent)] hover:!text-white cursor-hover"
             >
               <FaGithub size={18} />
               View on GitHub
@@ -396,8 +396,8 @@ const ProjectCard = ({ project, reverse }) => {
                 {index}
               </span>
               <div className="h-4 w-px bg-white/10" />
-              <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 font-body text-[10px] font-semibold tracking-wider uppercase ${status === 'ARCHIVED' ? 'text-white/50' : 'text-[#00E676]'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${status === 'ARCHIVED' ? 'bg-white/30' : 'bg-[#00E676] animate-pulse'}`} />
+              <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 font-body text-[10px] font-semibold tracking-wider uppercase ${status === 'ARCHIVED' ? 'text-white/50' : 'text-[var(--color-accent-glow)]'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${status === 'ARCHIVED' ? 'bg-white/30' : 'bg-[var(--color-accent-glow)] animate-pulse'}`} />
                 <span>{status || 'SOURCE'}</span>
               </div>
             </div>
@@ -408,10 +408,10 @@ const ProjectCard = ({ project, reverse }) => {
 
           {/* Title & Subtitle */}
           <div className="mb-6 relative z-10">
-            <h3 className="text-2xl sm:text-3xl md:text-4xl font-display font-black text-white tracking-tight leading-none group-hover:text-[#00E676] transition-colors duration-300">
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-display font-black text-white tracking-tight leading-none group-hover:text-[var(--color-accent-glow)] transition-colors duration-300">
               {title}
             </h3>
-            <p className="font-body text-xs sm:text-sm text-[#00C853] font-medium mt-2 tracking-wide uppercase">
+            <p className="font-body text-xs sm:text-sm text-[var(--color-accent)] font-medium mt-2 tracking-wide uppercase">
               {subtitle}
             </p>
           </div>
@@ -433,7 +433,7 @@ const ProjectCard = ({ project, reverse }) => {
           {/* Description */}
           <div>
             <div className="flex items-center gap-2 mb-5">
-              <span className="font-body text-xs text-[#00C853] font-semibold tracking-widest uppercase">// OVERVIEW</span>
+              <span className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-widest uppercase">// OVERVIEW</span>
               <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
             </div>
             <p className="font-body text-[#a0a0b8] text-sm md:text-base leading-relaxed">
@@ -444,7 +444,7 @@ const ProjectCard = ({ project, reverse }) => {
           {/* Tech Stack */}
           <div className="mt-8">
             <div className="flex items-center gap-2 mb-4">
-              <span className="font-body text-xs text-[#00C853] font-semibold tracking-widest uppercase">// BUILT WITH</span>
+              <span className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-widest uppercase">// BUILT WITH</span>
               <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
             </div>
             <div className="flex flex-wrap gap-2 mb-8">
@@ -454,7 +454,7 @@ const ProjectCard = ({ project, reverse }) => {
             {/* GitHub CTA: Magnetic */}
             <MagneticButton
               href={github}
-              className="inline-flex items-center gap-3 px-7 py-3.5 bg-transparent font-body font-bold text-xs tracking-wider uppercase rounded-xl hover:!bg-[#00C853] hover:!text-white cursor-hover"
+              className="inline-flex items-center gap-3 px-7 py-3.5 bg-transparent font-body font-bold text-xs tracking-wider uppercase rounded-xl hover:!bg-[var(--color-accent)] hover:!text-white cursor-hover"
             >
               <FaGithub size={16} />
               View on GitHub
@@ -492,14 +492,14 @@ const CategorizedProjectCard = ({ project, cardIndex }) => {
           <span className="font-body text-[10px] tracking-wider text-white/50 font-bold uppercase block px-3 py-1 bg-white/[0.04] border border-white/[0.06] rounded-full truncate max-w-[70%]">
             {badge}
           </span>
-          <div className={`flex items-center gap-1.5 font-body text-[10px] font-semibold tracking-wider flex-shrink-0 ${status === 'ARCHIVED' ? 'text-white/50' : 'text-[#00E676]'}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${status === 'ARCHIVED' ? 'bg-white/30' : 'bg-[#00E676] animate-pulse'}`} />
+          <div className={`flex items-center gap-1.5 font-body text-[10px] font-semibold tracking-wider flex-shrink-0 ${status === 'ARCHIVED' ? 'text-white/50' : 'text-[var(--color-accent-glow)]'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${status === 'ARCHIVED' ? 'bg-white/30' : 'bg-[var(--color-accent-glow)] animate-pulse'}`} />
             <span>{status || 'SOURCE'}</span>
           </div>
         </div>
 
         <div className="flex items-baseline justify-between gap-2 mt-2">
-          <h4 className="font-display font-bold text-lg md:text-xl text-white group-hover:text-[#00E676] transition-colors duration-300 leading-snug">
+          <h4 className="font-display font-bold text-lg md:text-xl text-white group-hover:text-[var(--color-accent-glow)] transition-colors duration-300 leading-snug">
             {title}
           </h4>
           <span className="font-body text-xs text-white/15 font-bold select-none flex-shrink-0">{index}</span>
@@ -516,7 +516,7 @@ const CategorizedProjectCard = ({ project, cardIndex }) => {
           {tech.map((t) => (
             <span 
               key={t}
-              className="px-2.5 py-0.5 text-[10px] font-body font-semibold uppercase tracking-wide bg-white/[0.04] border border-white/[0.06] text-white/50 rounded-full hover:border-[#00C853]/40 hover:text-[#00C853] hover:bg-[#00C853]/10 transition-all duration-300"
+              className="px-2.5 py-0.5 text-[10px] font-body font-semibold uppercase tracking-wide bg-white/[0.04] border border-white/[0.06] text-white/50 rounded-full hover:border-[var(--color-accent)]/40 hover:text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 transition-all duration-300"
             >
               {t}
             </span>
@@ -526,7 +526,7 @@ const CategorizedProjectCard = ({ project, cardIndex }) => {
         {/* View on GitHub — magnetic */}
         <MagneticButton
           href={github}
-          className="inline-flex items-center justify-between gap-2 py-2.5 px-4 bg-transparent hover:!bg-[#00C853] hover:!text-white rounded-xl font-body text-xs font-bold tracking-wider uppercase w-full group/btn cursor-hover"
+          className="inline-flex items-center justify-between gap-2 py-2.5 px-4 bg-transparent hover:!bg-[var(--color-accent)] hover:!text-white rounded-xl font-body text-xs font-bold tracking-wider uppercase w-full group/btn cursor-hover"
         >
           <span className="flex items-center gap-2">
             <FaGithub size={14} />
@@ -573,7 +573,7 @@ const Projects = () => {
         {/* ── Section Header ────────────────────────────────── */}
         <ScrollReveal>
           <div className="mb-16">
-            <span className="font-body text-xs text-[#00C853] font-semibold tracking-widest uppercase block mb-3">
+            <span className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-widest uppercase block mb-3">
               // 04 · FEATURED WORK
             </span>
             <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-8">
@@ -601,7 +601,7 @@ const Projects = () => {
           
           <ScrollReveal>
             <div className="flex flex-col items-center text-center mb-10">
-              <span className="font-body text-xs text-[#00C853] font-semibold tracking-widest uppercase block mb-2">
+              <span className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-widest uppercase block mb-2">
                 // ARCHIVES &amp; EXPERIMENTS
               </span>
               <h3 className="font-display font-bold text-xl sm:text-2xl text-white tracking-tight">
@@ -611,7 +611,7 @@ const Projects = () => {
                 Filter across distributed backends, full-stack architectures, and AI microservices.
               </p>
               {/* Category headers gradient underline divider */}
-              <div className="w-40 h-1 bg-gradient-to-r from-[#00C853] to-[#00E676] rounded-full mt-5 mx-auto shadow-[0_0_12px_rgba(0,200,83,0.6)]" />
+              <div className="w-40 h-1 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-glow)] rounded-full mt-5 mx-auto shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent)_60%,transparent)]" />
             </div>
           </ScrollReveal>
 
@@ -633,7 +633,7 @@ const Projects = () => {
                     {isActive && (
                       <motion.div
                         layoutId="active-tab-pill"
-                        className="absolute inset-0 bg-gradient-to-r from-[#00C853] to-[#00E676] rounded-xl shadow-[0_0_15px_rgba(0,200,83,0.6)] -z-10"
+                        className="absolute inset-0 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-glow)] rounded-xl shadow-[0_0_15px_color-mix(in_srgb,var(--color-accent)_60%,transparent)] -z-10"
                         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                       />
                     )}
@@ -668,14 +668,14 @@ const Projects = () => {
         <ScrollReveal delay={0.2}>
           <div className="mt-20 flex flex-col sm:flex-row items-center justify-center gap-4 text-center">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#00E676] animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-[var(--color-accent-glow)] animate-pulse" />
               <span className="font-body text-xs text-[#a0a0b8] font-medium tracking-wide uppercase">More projects in progress</span>
             </div>
             <a
               href="https://github.com/Rishi1435"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 font-body text-xs text-[#00C853] hover:text-[#00E676] font-semibold tracking-wider uppercase border-b border-[#00C853]/30 hover:border-[#00E676] transition-all duration-300 pb-0.5"
+              className="inline-flex items-center gap-2 font-body text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-glow)] font-semibold tracking-wider uppercase border-b border-[var(--color-accent)]/30 hover:border-[var(--color-accent-glow)] transition-all duration-300 pb-0.5"
             >
               <FaGithub size={12} />
               github.com/Rishi1435

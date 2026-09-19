@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import SectionPagination from './SectionPagination';
 import ScrollReveal from './ScrollReveal';
 import { FaGithub, FaLinkedin, FaEnvelope, FaPaperPlane } from 'react-icons/fa';
@@ -7,9 +7,20 @@ const Contact = () => {
   const [formState, setFormState] = useState({ name: '', email: '', message: '' });
   const [status, setStatus] = useState('');
   const [focusedField, setFocusedField] = useState(null);
+  const botcheckRef = useRef(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Honeypot: real users never see or toggle this. If it's checked, a bot
+    // filled the form — drop it silently without tipping the bot off.
+    if (botcheckRef.current?.checked) {
+      setStatus('success');
+      setFormState({ name: '', email: '', message: '' });
+      setTimeout(() => setStatus(''), 4000);
+      return;
+    }
+
     setStatus('sending');
 
     const accessKey = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY;
@@ -17,7 +28,7 @@ const Contact = () => {
     if (!accessKey || accessKey === 'YOUR_ACCESS_KEY_HERE') {
       console.warn(
         `%c[Contact Form]%c To receive actual form transmissions via email, please visit https://web3forms.com and add VITE_WEB3FORMS_ACCESS_KEY to .env`,
-        'color: #00C853; font-weight: bold;',
+        'color: var(--color-accent); font-weight: bold;',
         'color: inherit;'
       );
 
@@ -42,7 +53,8 @@ const Contact = () => {
           email: formState.email,
           message: formState.message,
           subject: `Portfolio Contact from ${formState.name}`,
-          from_name: 'Portfolio Contact'
+          from_name: 'Portfolio Contact',
+          botcheck: '' // server-side honeypot; empty for genuine submissions
         })
       });
 
@@ -74,7 +86,7 @@ const Contact = () => {
         {/* Section Heading */}
         <ScrollReveal>
           <div className="mb-16 text-center">
-            <span className="font-body text-xs text-[#00C853] font-semibold tracking-widest uppercase mb-3 block select-none">
+            <span className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-widest uppercase mb-3 block select-none">
               // 05 · GET IN TOUCH
             </span>
             <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-display font-black leading-none tracking-tight section-title select-none">
@@ -95,25 +107,25 @@ const Contact = () => {
               <div className="space-y-8 relative z-10">
                 {/* Header Widget */}
                 <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
-                  <span className="font-body text-xs text-[#00C853] font-semibold tracking-wider uppercase">CONTACT INFO</span>
+                  <span className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-wider uppercase">CONTACT INFO</span>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#00E676] animate-pulse" />
-                    <span className="font-body text-[10px] text-[#00E676] font-semibold tracking-wider">ONLINE</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent-glow)] animate-pulse" />
+                    <span className="font-body text-[10px] text-[var(--color-accent-glow)] font-semibold tracking-wider">ONLINE</span>
                   </div>
                 </div>
 
                 {/* Email Display */}
                 <div className="space-y-6 pt-2">
                   <div>
-                    <h3 className="font-body text-xs text-[#00C853] font-semibold tracking-wider uppercase mb-1">LOCATION</h3>
+                    <h3 className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-wider uppercase mb-1">LOCATION</h3>
                     <p className="font-body text-white text-sm font-medium">Visakhapatnam, Andhra Pradesh, India</p>
                   </div>
                   
                   <div>
-                    <h3 className="font-body text-xs text-[#00C853] font-semibold tracking-wider uppercase mb-1">DIRECT CHANNEL</h3>
+                    <h3 className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-wider uppercase mb-1">DIRECT CHANNEL</h3>
                     <a 
                       href="mailto:pediredlarishi2005@gmail.com" 
-                      className="font-body text-white hover:text-[#00E676] transition-colors text-sm break-all font-semibold block"
+                      className="font-body text-white hover:text-[var(--color-accent-glow)] transition-colors text-sm break-all font-semibold block"
                     >
                       pediredlarishi2005@gmail.com
                     </a>
@@ -130,7 +142,7 @@ const Contact = () => {
                     href="mailto:pediredlarishi2005@gmail.com"
                     aria-label="Email direct"
                     style={{ borderRadius: '50%', width: '48px', height: '48px' }}
-                    className="glass-card flex items-center justify-center text-white hover:text-[#00E676] transition-all duration-300 hover:!border-[#00E676] hover:shadow-[0_0_20px_rgba(0,230,118,0.4)]"
+                    className="glass-card flex items-center justify-center text-white hover:text-[var(--color-accent-glow)] transition-all duration-300 hover:!border-[var(--color-accent-glow)] hover:shadow-[0_0_20px_color-mix(in_srgb,var(--color-accent-glow)_40%,transparent)]"
                   >
                     <FaEnvelope size={18} />
                   </a>
@@ -140,7 +152,7 @@ const Contact = () => {
                     rel="noopener noreferrer"
                     aria-label="LinkedIn profile"
                     style={{ borderRadius: '50%', width: '48px', height: '48px' }}
-                    className="glass-card flex items-center justify-center text-white hover:text-[#00C853] transition-all duration-300 hover:!border-[#00C853] hover:shadow-[0_0_20px_rgba(0,200,83,0.4)]"
+                    className="glass-card flex items-center justify-center text-white hover:text-[var(--color-accent)] transition-all duration-300 hover:!border-[var(--color-accent)] hover:shadow-[0_0_20px_color-mix(in_srgb,var(--color-accent)_40%,transparent)]"
                   >
                     <FaLinkedin size={18} />
                   </a>
@@ -150,7 +162,7 @@ const Contact = () => {
                     rel="noopener noreferrer"
                     aria-label="GitHub profile"
                     style={{ borderRadius: '50%', width: '48px', height: '48px' }}
-                    className="glass-card flex items-center justify-center text-white hover:text-[#00E676] transition-all duration-300 hover:!border-[#00E676] hover:shadow-[0_0_20px_rgba(0,230,118,0.4)]"
+                    className="glass-card flex items-center justify-center text-white hover:text-[var(--color-accent-glow)] transition-all duration-300 hover:!border-[var(--color-accent-glow)] hover:shadow-[0_0_20px_color-mix(in_srgb,var(--color-accent-glow)_40%,transparent)]"
                   >
                     <FaGithub size={18} />
                   </a>
@@ -161,11 +173,23 @@ const Contact = () => {
             {/* Right Panel: Futuristic Contact Console Form */}
             <div className="lg:col-span-7 p-7 md:p-8 glass-card">
               <div className="flex items-center justify-between border-b border-white/[0.06] pb-4 mb-6">
-                <span className="font-body text-xs text-[#00C853] font-semibold tracking-wider uppercase">SEND A MESSAGE</span>
+                <span className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-wider uppercase">SEND A MESSAGE</span>
                 <span className="font-body text-[10px] text-[#a0a0b8] font-medium tracking-wide">SECURE SSL</span>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Honeypot — hidden from users and assistive tech; bots that
+                    tick it get their submission dropped (Web3Forms pattern). */}
+                <input
+                  ref={botcheckRef}
+                  type="checkbox"
+                  name="botcheck"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  style={{ position: 'absolute', left: '-9999px', width: 0, height: 0, opacity: 0 }}
+                />
+
                 {/* Name field */}
                 <div>
                   <label 
@@ -185,8 +209,8 @@ const Contact = () => {
                     placeholder="John Doe"
                     style={{
                       background: 'rgba(0, 0, 0, 0.6)',
-                      boxShadow: focusedField === 'name' ? '0 0 0 2px rgba(0, 200, 83, 0.4)' : 'none',
-                      border: focusedField === 'name' ? '1px solid rgba(0, 200, 83, 0.8)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      boxShadow: focusedField === 'name' ? '0 0 0 2px color-mix(in srgb, var(--color-accent) 40%, transparent)' : 'none',
+                      border: focusedField === 'name' ? '1px solid color-mix(in srgb, var(--color-accent) 80%, transparent)' : '1px solid rgba(255, 255, 255, 0.08)',
                       borderRadius: '16px'
                     }}
                     className="w-full px-4 py-3.5 font-body text-sm text-white placeholder-[#a0a0b8]/40 focus:outline-none transition-all duration-300"
@@ -212,8 +236,8 @@ const Contact = () => {
                     placeholder="john@example.com"
                     style={{
                       background: 'rgba(0, 0, 0, 0.6)',
-                      boxShadow: focusedField === 'email' ? '0 0 0 2px rgba(0, 200, 83, 0.4)' : 'none',
-                      border: focusedField === 'email' ? '1px solid rgba(0, 200, 83, 0.8)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      boxShadow: focusedField === 'email' ? '0 0 0 2px color-mix(in srgb, var(--color-accent) 40%, transparent)' : 'none',
+                      border: focusedField === 'email' ? '1px solid color-mix(in srgb, var(--color-accent) 80%, transparent)' : '1px solid rgba(255, 255, 255, 0.08)',
                       borderRadius: '16px'
                     }}
                     className="w-full px-4 py-3.5 font-body text-sm text-white placeholder-[#a0a0b8]/40 focus:outline-none transition-all duration-300"
@@ -239,8 +263,8 @@ const Contact = () => {
                     placeholder="How can I help you?"
                     style={{
                       background: 'rgba(0, 0, 0, 0.6)',
-                      boxShadow: focusedField === 'message' ? '0 0 0 2px rgba(0, 200, 83, 0.4)' : 'none',
-                      border: focusedField === 'message' ? '1px solid rgba(0, 200, 83, 0.8)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      boxShadow: focusedField === 'message' ? '0 0 0 2px color-mix(in srgb, var(--color-accent) 40%, transparent)' : 'none',
+                      border: focusedField === 'message' ? '1px solid color-mix(in srgb, var(--color-accent) 80%, transparent)' : '1px solid rgba(255, 255, 255, 0.08)',
                       borderRadius: '16px'
                     }}
                     className="w-full px-4 py-3.5 font-body text-sm text-white placeholder-[#a0a0b8]/40 focus:outline-none transition-all duration-300 resize-none"
@@ -254,10 +278,10 @@ const Contact = () => {
                   style={{
                     background: status === 'error' 
                       ? 'linear-gradient(135deg, #ef4444, #f97316)' 
-                      : 'linear-gradient(135deg, #00C853, #00E676)',
+                      : 'linear-gradient(135deg, var(--color-accent), var(--color-accent-glow))',
                     borderRadius: '12px'
                   }}
-                  className="w-full py-4 relative font-body font-bold text-sm text-black tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_8px_30px_rgba(0,200,83,0.5)] hover:-translate-y-0.5"
+                  className="w-full py-4 relative font-body font-bold text-sm text-black tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_8px_30px_color-mix(in_srgb,var(--color-accent)_50%,transparent)] hover:-translate-y-0.5"
                 >
                   {status === 'sending' ? (
                     <span className="flex items-center gap-2">
