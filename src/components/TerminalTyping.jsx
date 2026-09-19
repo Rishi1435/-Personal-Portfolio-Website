@@ -21,7 +21,7 @@ const terminalData = [
   {
     cmd: 'cat experience.json',
     output: [
-      { text: '// 12+ months of active experience & traineeships', isComment: true },
+      { text: '// 18+ months (1.5+ yrs) of active experience & traineeships', isComment: true },
       { text: '{\n  "roles": [\n    {\n      "title": "Campus Ambassador & Trainee",\n      "company": "LinkedIn",\n      "period": "Sep 2025 – Present"\n    },\n    {\n      "title": "Flutter Trainee",\n      "company": "Technical Hub",\n      "period": "May 2025 – Present"\n    },\n    {\n      "title": "Cloud Computing Intern",\n      "company": "APSSDC",\n      "period": "Prior Experience"\n    }\n  ]\n}', isJSON: true }
     ],
     type: 'json'

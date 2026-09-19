@@ -26,7 +26,7 @@ const projects = [
       { value: 'Top 5', label: 'Project Space Rank' },
     ],
     Visual: ProjectQlue,
-    status: 'LIVE',
+    status: 'SOURCE',
     featured: true,
   },
   {
@@ -44,7 +44,7 @@ const projects = [
       { value: 'Bio', label: 'Biometric Lock' },
     ],
     Visual: ProjectXpensia,
-    status: 'LIVE',
+    status: 'SOURCE',
     featured: false,
   },
 ];
@@ -73,7 +73,7 @@ const categorizedProjects = [
         tech: ['Java', 'Spring Boot', 'Redis', 'Docker'],
         github: 'https://github.com/Rishi1435/Distributed-Shopping-Cart-Service',
         badge: 'SPRING BOOT · REDIS · DISTRIBUTED',
-        status: 'LIVE'
+        status: 'SOURCE'
       },
       {
         id: 'notification',
@@ -83,7 +83,7 @@ const categorizedProjects = [
         tech: ['Node.js', 'RabbitMQ/Kafka', 'PostgreSQL'],
         github: 'https://github.com/Rishi1435/Event-Driven-Notification-Service',
         badge: 'NODE.JS · MICROSERVICE · QUEUE',
-        status: 'LIVE'
+        status: 'SOURCE'
       },
       {
         id: 'property',
@@ -103,7 +103,7 @@ const categorizedProjects = [
         tech: ['Node.js', 'Streams', 'Redis'],
         github: 'https://github.com/Rishi1435/CSV-Export-Service-with-Async-Streaming-and-Progress-Tracking',
         badge: 'ASYNC · STREAMING · NODE.JS',
-        status: 'LIVE'
+        status: 'SOURCE'
       }
     ]
   },
@@ -119,7 +119,7 @@ const categorizedProjects = [
         tech: ['JavaScript', 'Node.js', 'PostgreSQL', 'React'],
         github: 'https://github.com/Rishi1435/Multi-Tenant-SaaS-Platform-with-Project-Task-Management',
         badge: 'SAAS · MULTI-TENANT · FULL-STACK',
-        status: 'LIVE'
+        status: 'SOURCE'
       },
       {
         id: 'fintrack',
@@ -129,7 +129,7 @@ const categorizedProjects = [
         tech: ['Flutter', 'Dart', 'Node.js', 'MongoDB'],
         github: 'https://github.com/Rishi1435/FinTrack-Personal-Finance-Mobile-App',
         badge: 'FLUTTER · FINANCE · FULL-STACK',
-        status: 'LIVE'
+        status: 'SOURCE'
       },
       {
         id: 'payment',
@@ -139,7 +139,7 @@ const categorizedProjects = [
         tech: ['JavaScript', 'Node.js', 'Stripe API'],
         github: 'https://github.com/Rishi1435/Payment-Gateway',
         badge: 'PAYMENTS · NODE.JS · CHECKOUT',
-        status: 'LIVE'
+        status: 'SOURCE'
       }
     ]
   },
@@ -155,7 +155,7 @@ const categorizedProjects = [
         tech: ['Python', 'FastAPI', 'YOLOv8', 'OpenCV'],
         github: 'https://github.com/Rishi1435/Real-Time-Object-Detection-API-and-Web-App',
         badge: 'AI · YOLOV8 · PYTHON',
-        status: 'LIVE'
+        status: 'SOURCE'
       },
       {
         id: 'promptrouter',
@@ -165,7 +165,7 @@ const categorizedProjects = [
         tech: ['Python', 'OpenAI API', 'LangChain'],
         github: 'https://github.com/Rishi1435/LLM-Prompt-Router-with-Intent-Classification',
         badge: 'AI · LLM · PYTHON',
-        status: 'LIVE'
+        status: 'SOURCE'
       },
       {
         id: 'textract',
@@ -175,7 +175,7 @@ const categorizedProjects = [
         tech: ['Python', 'AWS Textract', 'S3', 'DynamoDB'],
         github: 'https://github.com/Rishi1435/Automated-Invoice-Processing-Pipeline-AWS-Textract',
         badge: 'AWS · TEXTRACT · PIPELINE',
-        status: 'LIVE'
+        status: 'SOURCE'
       },
       {
         id: 'cloudresume',
@@ -185,7 +185,7 @@ const categorizedProjects = [
         tech: ['Python', 'AWS Lambda', 'DynamoDB', 'API Gateway', 'GitHub Actions'],
         github: 'https://github.com/Rishi1435/AWS-Serverless-Cloud-Resume-API',
         badge: 'AWS · SERVERLESS · API',
-        status: 'LIVE'
+        status: 'SOURCE'
       }
     ]
   }
@@ -298,9 +298,9 @@ const FeaturedProjectCard = ({ project }) => {
                 {index}
               </span>
               <div className="h-5 w-px bg-white/10" />
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#00C853]/10 border border-[#00C853]/30 font-body text-[10px] text-[#00E676] font-semibold tracking-wider uppercase">
-                <span className="w-2 h-2 rounded-full bg-[#00E676] animate-pulse" />
-                <span>{status || 'LIVE'}</span>
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full font-body text-[10px] font-semibold tracking-wider uppercase ${status === 'ARCHIVED' ? 'bg-white/5 border border-white/10 text-white/50' : 'bg-[#00C853]/10 border border-[#00C853]/30 text-[#00E676]'}`}>
+                <span className={`w-2 h-2 rounded-full ${status === 'ARCHIVED' ? 'bg-white/30' : 'bg-[#00E676] animate-pulse'}`} />
+                <span>{status || 'SOURCE'}</span>
               </div>
             </div>
             <span className="font-body text-xs text-[#00C853] font-bold tracking-widest uppercase flex items-center gap-2">
@@ -396,9 +396,9 @@ const ProjectCard = ({ project, reverse }) => {
                 {index}
               </span>
               <div className="h-4 w-px bg-white/10" />
-              <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 font-body text-[10px] text-[#00E676] font-semibold tracking-wider uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00E676] animate-pulse" />
-                <span>{status || 'LIVE'}</span>
+              <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 font-body text-[10px] font-semibold tracking-wider uppercase ${status === 'ARCHIVED' ? 'text-white/50' : 'text-[#00E676]'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${status === 'ARCHIVED' ? 'bg-white/30' : 'bg-[#00E676] animate-pulse'}`} />
+                <span>{status || 'SOURCE'}</span>
               </div>
             </div>
             <span className="font-body text-xs text-white/30 font-bold tracking-widest uppercase">
@@ -492,9 +492,9 @@ const CategorizedProjectCard = ({ project, cardIndex }) => {
           <span className="font-body text-[10px] tracking-wider text-white/50 font-bold uppercase block px-3 py-1 bg-white/[0.04] border border-white/[0.06] rounded-full truncate max-w-[70%]">
             {badge}
           </span>
-          <div className="flex items-center gap-1.5 font-body text-[10px] text-[#00E676] font-semibold tracking-wider flex-shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00E676] animate-pulse" />
-            <span>{status || 'LIVE'}</span>
+          <div className={`flex items-center gap-1.5 font-body text-[10px] font-semibold tracking-wider flex-shrink-0 ${status === 'ARCHIVED' ? 'text-white/50' : 'text-[#00E676]'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${status === 'ARCHIVED' ? 'bg-white/30' : 'bg-[#00E676] animate-pulse'}`} />
+            <span>{status || 'SOURCE'}</span>
           </div>
         </div>
 
