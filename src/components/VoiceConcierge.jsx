@@ -101,6 +101,8 @@ const VoiceConcierge = () => {
   const kokoroRef = useRef(null);
   const audioRef = useRef(null);
   const audioUrlRef = useRef(null);
+  const speakTimerRef = useRef(null);
+  const keepAliveRef = useRef(null);
 
   // Voices load asynchronously; cache them and keep the best pick fresh.
   useEffect(() => {
@@ -114,6 +116,29 @@ const VoiceConcierge = () => {
     return () => speechSynthesis.removeEventListener?.('voiceschanged', load);
   }, []);
 
+  // Always clear the speaking watchdog + keepalive so we can never get stuck.
+  const clearSpeakTimers = useCallback(() => {
+    if (speakTimerRef.current) { clearTimeout(speakTimerRef.current); speakTimerRef.current = null; }
+    if (keepAliveRef.current) { clearInterval(keepAliveRef.current); keepAliveRef.current = null; }
+  }, []);
+
+  const finishSpeaking = useCallback(() => {
+    clearSpeakTimers();
+    setPhase('idle');
+  }, [clearSpeakTimers]);
+
+  // Guarantee we leave 'speaking' even if onend/onended never fires (a known
+  // Chrome SpeechSynthesis bug) or playback stalls.
+  const armWatchdog = useCallback((ms) => {
+    clearSpeakTimers();
+    speakTimerRef.current = setTimeout(() => {
+      try { speechSynthesis?.cancel(); } catch { /* noop */ }
+      try { audioRef.current?.pause(); } catch { /* noop */ }
+      setPhase('idle');
+      speakTimerRef.current = null;
+    }, ms);
+  }, [clearSpeakTimers]);
+
   const speakNative = useCallback((text) => {
     if (typeof speechSynthesis === 'undefined') { setPhase('idle'); return; }
     try {
@@ -124,12 +149,18 @@ const VoiceConcierge = () => {
       if (voice) u.voice = voice;
       u.lang = voice?.lang || 'en-US';
       u.rate = 1; u.pitch = 1; u.volume = 1;
-      u.onend = () => setPhase('idle');
-      u.onerror = () => setPhase('idle');
+      u.onend = finishSpeaking;
+      u.onerror = finishSpeaking;
       setPhase('speaking');
+      // Chrome pauses long synthesis after ~15s; nudge it to keep going.
+      keepAliveRef.current = setInterval(() => {
+        try { if (speechSynthesis.speaking) speechSynthesis.resume(); } catch { /* noop */ }
+      }, 5000);
+      // Watchdog sized to the text (~90ms/char) with a hard 30s cap.
+      armWatchdog(Math.min(30000, Math.max(6000, text.length * 90 + 4000)));
       speechSynthesis.speak(u);
-    } catch { setPhase('idle'); }
-  }, []);
+    } catch { finishSpeaking(); }
+  }, [finishSpeaking, armWatchdog]);
 
   // Load Kokoro on demand (from CDN, cached by the browser after first use).
   const loadKokoro = useCallback(async () => {
@@ -144,6 +175,8 @@ const VoiceConcierge = () => {
 
   const speakHD = useCallback(async (text) => {
     setPhase('speaking');
+    // Generous watchdog to cover a slow first-time model download; cleared on end.
+    armWatchdog(120000);
     try {
       const tts = await loadKokoro();
       const audio = await tts.generate(text, { voice: KOKORO_VOICE });
@@ -153,15 +186,18 @@ const VoiceConcierge = () => {
       if (!audioRef.current) audioRef.current = new Audio();
       const el = audioRef.current;
       el.src = url;
-      el.onended = () => setPhase('idle');
-      el.onerror = () => setPhase('idle');
+      el.onended = finishSpeaking;
+      el.onerror = finishSpeaking;
       await el.play();
+      // Now that playback started, tighten the watchdog to the clip length.
+      const dur = Number.isFinite(el.duration) ? el.duration * 1000 : text.length * 90 + 4000;
+      armWatchdog(Math.min(60000, dur + 4000));
     } catch {
-      // Any failure (CDN/model/inference) → fall back to the free native voice.
+      // Any failure (CDN/model/inference/autoplay) → free native voice fallback.
       setTtsStatus('idle');
       speakNative(text);
     }
-  }, [loadKokoro, speakNative]);
+  }, [loadKokoro, speakNative, finishSpeaking, armWatchdog]);
 
   const speak = useCallback((text) => {
     if (hdVoice) speakHD(text);
@@ -184,6 +220,10 @@ const VoiceConcierge = () => {
   const ask = useCallback(async (q) => {
     const text = (q || '').trim();
     if (!text) return;
+    // Interrupt any prior speech/watchdog before a new turn.
+    clearSpeakTimers();
+    try { speechSynthesis?.cancel(); } catch { /* noop */ }
+    try { audioRef.current?.pause(); } catch { /* noop */ }
     setQuestion(text);
     setAnswer('');
     setNotice('');
@@ -217,7 +257,7 @@ const VoiceConcierge = () => {
     } finally {
       clearTimeout(timer);
     }
-  }, [highlightSection, speak]);
+  }, [highlightSection, speak, clearSpeakTimers]);
 
   // ── Native SpeechRecognition ──────────────────────────────
   const stopEverything = useCallback(() => {
@@ -226,7 +266,8 @@ const VoiceConcierge = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     try { audioRef.current?.pause(); } catch { /* noop */ }
-  }, []);
+    clearSpeakTimers();
+  }, [clearSpeakTimers]);
 
   const startNative = useCallback(() => {
     const SR = getNativeSR();
@@ -304,7 +345,7 @@ const VoiceConcierge = () => {
   }, [ask, loadTranscriber]);
 
   const toggleListening = useCallback(() => {
-    if (phase === 'speaking') { try { speechSynthesis.cancel(); } catch { /* noop */ } try { audioRef.current?.pause(); } catch { /* noop */ } setPhase('idle'); return; }
+    if (phase === 'speaking') { try { speechSynthesis.cancel(); } catch { /* noop */ } try { audioRef.current?.pause(); } catch { /* noop */ } clearSpeakTimers(); setPhase('idle'); return; }
     if (phase === 'listening') {
       if (engine === 'native') { try { recognitionRef.current?.stop(); } catch { /* noop */ } }
       else { try { mediaRef.current?.stop(); } catch { /* noop */ } }
@@ -313,7 +354,7 @@ const VoiceConcierge = () => {
     if (phase === 'thinking') return;
     if (engine === 'native') startNative();
     else startWasm();
-  }, [phase, engine, startNative, startWasm]);
+  }, [phase, engine, startNative, startWasm, clearSpeakTimers]);
 
   const submitTyped = (e) => {
     e.preventDefault();
