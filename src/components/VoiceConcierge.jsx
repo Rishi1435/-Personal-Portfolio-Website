@@ -100,11 +100,14 @@ const VoiceConcierge = () => {
     setAnswer('');
     setNotice('');
     setPhase('thinking');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 70000);
     try {
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: text }),
+        signal: controller.signal,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -116,9 +119,15 @@ const VoiceConcierge = () => {
       if (data.section) highlightSection(data.section);
       if (data.answer) speak(data.answer);
       else setPhase('idle');
-    } catch {
-      setAnswer('The assistant is unavailable right now. Please email pediredlarishi2005@gmail.com.');
+    } catch (err) {
+      setAnswer(
+        err?.name === 'AbortError'
+          ? 'That took too long — please try again, or email pediredlarishi2005@gmail.com.'
+          : 'The assistant is unavailable right now. Please email pediredlarishi2005@gmail.com.'
+      );
       setPhase('idle');
+    } finally {
+      clearTimeout(timer);
     }
   }, [highlightSection, speak]);
 

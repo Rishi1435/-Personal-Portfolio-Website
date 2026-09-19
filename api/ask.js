@@ -21,6 +21,12 @@ const CONTACT_EMAIL = 'pediredlarishi2005@gmail.com';
 const MAX_QUESTION_CHARS = 500;
 const RATE_LIMIT = 18; // questions per window
 const RATE_WINDOW_SEC = 3600; // 1 hour
+// This NIM model can be slow on the trial tier (~60s observed); abort rather
+// than hang. Tune with ASK_TIMEOUT_MS. Needs Vercel maxDuration >= this.
+const UPSTREAM_TIMEOUT_MS = Number(process.env.ASK_TIMEOUT_MS) || 55000;
+
+// Allow the function to run long enough for a slow completion (Vercel Pro).
+export const config = { maxDuration: 60 };
 
 const SECTIONS = ['hero', 'about', 'experience', 'skills', 'qlue', 'xpensia', 'projects', 'contact'];
 
@@ -151,9 +157,12 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: "You've reached the question limit for now — try again in a little while, or email " + CONTACT_EMAIL + '.' });
   }
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
   try {
     const upstream = await fetch(NVIDIA_URL, {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         Authorization: `Bearer ${process.env.NVIDIA_API_KEY}`,
         'Content-Type': 'application/json',
@@ -187,7 +196,13 @@ export default async function handler(req, res) {
     }
     return res.status(200).json({ answer, section });
   } catch (err) {
+    if (err?.name === 'AbortError') {
+      console.error('ask handler upstream timeout after', UPSTREAM_TIMEOUT_MS, 'ms');
+      return res.status(504).json({ error: 'The assistant took too long to respond. Please try again, or email ' + CONTACT_EMAIL + '.' });
+    }
     console.error('ask handler error', err?.message);
     return res.status(500).json({ error: 'Something went wrong. Please try again, or email ' + CONTACT_EMAIL + '.' });
+  } finally {
+    clearTimeout(timer);
   }
 }
