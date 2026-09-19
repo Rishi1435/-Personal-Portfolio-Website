@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import ProjectQlue from './ProjectQlue';
 import ProjectXpensia from './ProjectXpensia';
+import VoicePipelineDemo from './VoicePipelineDemo';
 import ScrollReveal from './ScrollReveal';
 import { FaGithub, FaExternalLinkAlt } from 'react-icons/fa';
 
@@ -588,13 +589,20 @@ const Projects = () => {
         </ScrollReveal>
 
         {/* ── Featured Project Card Stack ──────────────────── */}
-        <div className="flex flex-col gap-10 mb-24">
+        <div className="flex flex-col gap-10 mb-10">
           {projects.map((project, i) => (
-            project.featured 
+            project.featured
               ? <FeaturedProjectCard key={project.id} project={project} />
               : <ProjectCard key={project.id} project={project} reverse={i % 2 !== 0} />
           ))}
         </div>
+
+        {/* ── Live interactive demo of Qlue's voice pipeline ── */}
+        <ScrollReveal delay={0.1}>
+          <div className="mb-24">
+            <VoicePipelineDemo />
+          </div>
+        </ScrollReveal>
 
         {/* ── Tab Bar Header & Categorized Grid ────── */}
         <div className="pt-12 border-t border-white/[0.06]">

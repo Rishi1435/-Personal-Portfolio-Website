@@ -7,6 +7,7 @@ import Projects from './components/Projects';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import LoadingScreen from './components/LoadingScreen';
+import CommandPalette from './components/CommandPalette';
 import { motion, useScroll, useSpring, AnimatePresence } from 'framer-motion';
 
 const isFinePointer = () =>
@@ -179,6 +180,9 @@ function App() {
 
       {/* Custom Cursor */}
       <CustomCursor />
+
+      {/* Command Palette — Cmd/Ctrl+K (button on mobile) */}
+      <CommandPalette />
 
       {/* Modern Emerald Gradient Scroll Progress Bar */}
       <motion.div 

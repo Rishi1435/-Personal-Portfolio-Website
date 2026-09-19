@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
-import TerminalTyping from './TerminalTyping';
+import TerminalREPL from './TerminalREPL';
 import ScrollReveal from './ScrollReveal';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 
@@ -236,8 +236,8 @@ const About = () => {
                   </div>
                 </div>
 
-                {/* Terminal Content */}
-                <TerminalTyping />
+                {/* Terminal Content — interactive REPL */}
+                <TerminalREPL />
 
                 {/* Bottom status bar */}
                 <div className="border-t border-white/[0.06] bg-white/[0.02] px-5 py-2.5 flex items-center justify-between">
