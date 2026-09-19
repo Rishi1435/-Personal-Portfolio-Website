@@ -5,6 +5,7 @@ import ProjectQlue from './ProjectQlue';
 import ProjectXpensia from './ProjectXpensia';
 import VoicePipelineDemo from './VoicePipelineDemo';
 import QlueArchitecture from './QlueArchitecture';
+import ProjectMedia from './ProjectMedia';
 import ScrollReveal from './ScrollReveal';
 import { FaGithub, FaExternalLinkAlt } from 'react-icons/fa';
 
@@ -274,7 +275,7 @@ const MagneticButton = ({ href, children, className = '', featured = false }) =>
 
 /* ─── Featured Project Card (Qlue — dominant, full-width) ───────────── */
 const FeaturedProjectCard = ({ project }) => {
-  const { index, title, subtitle, description, tech, github, metrics, Visual, status } = project;
+  const { index, title, subtitle, description, tech, github, metrics, Visual, status, video, poster } = project;
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
 
   return (
@@ -320,9 +321,9 @@ const FeaturedProjectCard = ({ project }) => {
             </p>
           </div>
 
-          {/* Visual — larger for featured */}
+          {/* Visual — video loop when available, else animated SVG mockup */}
           <div className="relative z-10 rounded-2xl overflow-hidden bg-black/40 border border-white/[0.06] p-2">
-            <Visual />
+            <ProjectMedia webm={video} poster={poster} Fallback={Visual} label={`${title} demo`} />
           </div>
 
           {/* Metrics strip — 5 metrics for Qlue */}
@@ -375,7 +376,7 @@ const FeaturedProjectCard = ({ project }) => {
 
 /* ─── Standard Project Card (e.g. Xpensia) ─────────────────── */
 const ProjectCard = ({ project, reverse }) => {
-  const { index, title, subtitle, description, tech, github, metrics, Visual, status } = project;
+  const { index, title, subtitle, description, tech, github, metrics, Visual, status, video, poster } = project;
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
 
   return (
@@ -418,9 +419,9 @@ const ProjectCard = ({ project, reverse }) => {
             </p>
           </div>
 
-          {/* Visual */}
+          {/* Visual — video loop when available, else animated SVG mockup */}
           <div className="relative z-10 rounded-2xl overflow-hidden bg-black/40 border border-white/[0.06] p-2">
-            <Visual />
+            <ProjectMedia webm={video} poster={poster} Fallback={Visual} label={`${title} demo`} />
           </div>
 
           {/* Metrics strip */}
