@@ -105,3 +105,53 @@ build warns the main chunk is >500 kB. `React.lazy` on the below-the-fold
 
 **Best Practices = 100** and the `errors-in-console` audit reported **no console
 errors or warnings** on load.
+
+---
+
+## Phase 8 — after the depth features (Phase 7)
+
+Phase 7 added the Qlue architecture diagram, the project-media/video component,
+deep-linked filter tabs, count-up metrics, and mobile parity (carousel + sticky
+bar). Re-measured under the same conditions.
+
+**Important — read the numbers with the drift check below.** By this point the
+test machine was heavily loaded (a long session's worth of node/vite/headless
+Chrome), and simulated-throttling Lighthouse is CPU-contention sensitive. Raw
+Phase 7 runs landed at **perf 43–49, LCP 4.1–5.6 s, TBT 1.3–2.9 s** — worse than
+the Phase 6 reading. To attribute that honestly, the **Phase 6 build (commit
+`aa36329`) was rebuilt and re-measured on the same loaded machine**:
+
+| Build measured now | perf | LCP | TBT |
+| --- | --- | --- | --- |
+| Phase 6 build (`aa36329`) | 49 | 4.2 s | 1,700 ms |
+| Phase 8 build (current) | 43–49 | 4.1–5.6 s | 1,310–1,430 ms |
+
+The Phase 6 code that originally scored **69 / 3.5 s / 550 ms** now scores
+**49 / 4.2 s / 1,700 ms** on the same machine — so the drop is **environment
+drift, not a Phase 7 regression.** The two builds measure the same within noise;
+the above-the-fold LCP path (hero image) is unchanged, and the main bundle is in
+fact *smaller* after Phase 8's code-split (522 → 505 kB, with two ~9 kB lazy
+chunks). Best Practices stayed 100 and console stayed clean.
+
+For a clean absolute number, re-run on an idle machine — the Phase 6 methodology
+and the reproduce command at the top of this file still apply.
+
+### Phase 8 verification checklist (all via headless Chrome DevTools Protocol)
+
+- **Console clean** on load and across every new interaction — diagram node
+  click, trace-request animation, filter-tab switch, count-up, arrow-key tab
+  nav, mobile carousel. `errors-in-console` = 0, Best Practices = 100.
+- **Architecture diagram**: node click opens the chosen/rejected/latency panel;
+  Trace request reaches the "under 2s" total; keyboard-operable (buttons).
+- **Filter tabs**: click writes `?stack=backend`, sets `aria-selected`;
+  Left/Right arrow keys move selection and update the URL (History API).
+- **Count-up metrics**: final values render (e.g. 649) after scroll-in.
+- **Video**: no `<video>` autoplays (none ship yet — `ProjectMedia` falls back to
+  the SVG mockups), so nothing autoplays with sound; `preload="none"` keeps video
+  out of the LCP path when added; data-saver also maps to the SVG fallback.
+- **Reduced motion**: the diagram trace resolves instantly (no step animation);
+  count-up renders final values immediately; the boot loader is skipped.
+- **Responsive / mobile**: no horizontal overflow at 375 px or 1440 px; the
+  sticky mobile action bar is `position: fixed` (bottom), clears the footer via
+  page padding, and sits below the top scroll-progress bar; the project carousel
+  is `overflow-x: auto` on mobile and reverts to the grid at md+.
