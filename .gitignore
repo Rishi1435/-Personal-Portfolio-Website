@@ -15,6 +15,10 @@ dist-ssr
 .env.*
 !.env.example
 
+# Lighthouse raw reports (summaries live in LIGHTHOUSE_BASELINE.md)
+lh-*.report.*
+lighthouse-report.*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
