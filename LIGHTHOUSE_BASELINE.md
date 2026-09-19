@@ -155,3 +155,60 @@ and the reproduce command at the top of this file still apply.
   sticky mobile action bar is `position: fixed` (bottom), clears the footer via
   page padding, and sits below the top scroll-progress bar; the project carousel
   is `overflow-x: auto` on mobile and reverts to the grid at md+.
+
+---
+
+## Phase 10 — after the AI voice concierge (Phase 9)
+
+Phase 9 replaced the old voice-pipeline demo with the AI voice concierge (overlay
+`/api/ask` proxy + two-tier STT + TTS). Re-measured on a **now-idle machine**,
+which also settles the Phase 8 drift question:
+
+| Metric | Value |
+| --- | --- |
+| **Performance score** | **73** |
+| **LCP** | **3.8 s** |
+| **TBT** | **310 ms** |
+| Best Practices | **100** |
+| Console errors | **0** |
+
+With the machine quiet again, perf is back to **73 / LCP 3.8 s / TBT 310 ms** —
+right where Phase 6 sat (69) despite everything Phases 7 + 9 added. That confirms
+the Phase 8 dip was environment drift, not regressions. The concierge ships as
+its **own lazy chunk** (`VoiceConcierge-*.js`, ~11 kB) — it is **not in the
+initial `index` bundle**, so it doesn't tax first paint, and transformers.js
+loads from a CDN only on the WASM STT path (never bundled).
+
+### Phase 10 verification checklist
+
+Verified here (headless Chrome + CDP, `/api/ask` stubbed for the client flow):
+
+- **Key isolation (check 4):** `NVIDIA_API_KEY`, `nvapi-`, and the NVIDIA
+  endpoint do **not** appear anywhere in `dist/`; the client request body is only
+  `{ question }`. The key lives solely in `api/ask.js` (server).
+- **Rate-limit cooldown (check 3):** server harness (fetch stubbed) confirmed
+  18 questions allowed then HTTP 429 with a friendly "try again / email" message
+  — not a silent failure. Also verified 204/405/400/413, section-enum parsing,
+  and defensive non-JSON parsing.
+- **Section auto-scroll (check 5):** a typed question returning `section:"skills"`
+  smoothly scrolls to `#skills` and pulses it; the scroll-progress bar stays
+  present and the scroll-reveals aren't disturbed. Console stayed clean.
+- **Reduced motion (check 6):** the orb drops its ping animation and the panel
+  still opens/works.
+- **Keyboard (check 7):** orb is a real `<button>`; panel opens, the typed input
+  submits on Enter, and Escape closes — full loop with no mouse.
+- **Cross-browser fallback logic (check 2):** with `SpeechRecognition` deleted
+  (the Firefox/Safari case), the component falls to the WASM/typed path and the
+  **typed input is always present and works**; spoken output uses
+  `SpeechSynthesis` (supported on Safari/Firefox).
+- **Lazy-load (check 8):** confirmed above — separate chunk, first paint unaffected.
+
+Requires a live deployment to fully exercise (documented honestly, not faked here):
+
+- **Refusal boundary (check 1):** the actual model's accept/refuse behavior needs
+  a deployed `NVIDIA_API_KEY`. The system prompt is built for it — strict
+  grounding, an explicit Rishi-only scope, worked accepted/refused examples, a
+  prompt-injection refusal example, and a "not in the knowledge base → give the
+  email" gap rule. The deterministic server guards around it are verified above.
+- **Real Safari/Firefox runtime (check 2):** only the *logic* was exercised here
+  (Chrome with native SR removed). Confirm on actual Safari/Firefox after deploy.
