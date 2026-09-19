@@ -203,12 +203,33 @@ Verified here (headless Chrome + CDP, `/api/ask` stubbed for the client flow):
   `SpeechSynthesis` (supported on Safari/Firefox).
 - **Lazy-load (check 8):** confirmed above — separate chunk, first paint unaffected.
 
-Requires a live deployment to fully exercise (documented honestly, not faked here):
+### Live model test (real NVIDIA key, run locally through `api/ask.js`)
 
-- **Refusal boundary (check 1):** the actual model's accept/refuse behavior needs
-  a deployed `NVIDIA_API_KEY`. The system prompt is built for it — strict
-  grounding, an explicit Rishi-only scope, worked accepted/refused examples, a
-  prompt-injection refusal example, and a "not in the knowledge base → give the
-  email" gap rule. The deterministic server guards around it are verified above.
+A real trial key was used to exercise the actual endpoint. Findings:
+
+- **Auth + model + reasoning-off work.** The key is valid, `nvidia/nemotron-3.5-lightning-30b-a3b`
+  is provisioned, and `chat_template_kwargs.enable_thinking=false` is honoured
+  (`reasoning_content: null`).
+- **Grounding + JSON + section enum work.** "How can I contact Rishi?" returned a
+  correctly grounded answer with `section:"contact"`. (One cold on-topic request
+  once returned a bare greeting — occasional flakiness, tolerated by the defensive
+  parser but worth noting.)
+- **⚠️ Latency is the blocker: ~50–110 s per completion on the trial tier.** That
+  is unusable for a live "voice concierge", exceeds Vercel Hobby's 10 s function
+  cap, and even with `maxDuration = 60` gives a 1–2 minute wait. With the 55 s
+  upstream timeout now in place, requests simply return 504.
+- **Refusal boundary (check 1): not conclusively verified live** — the off-topic /
+  injection / gap probes all hit the 55 s timeout before the model responded. The
+  system prompt is built for refusal (strict grounding, Rishi-only scope, worked
+  accepted/refused + injection examples, gap→email), and the one non-timed-out
+  answer was correctly grounded, but the model is too slow to confirm the full
+  battery. **Needs a faster endpoint/tier to verify and to be usable.**
 - **Real Safari/Firefox runtime (check 2):** only the *logic* was exercised here
   (Chrome with native SR removed). Confirm on actual Safari/Firefox after deploy.
+
+**Recommendation:** the code is complete and hardened, but this model on the trial
+tier is too slow to ship as-is. Either point `api/ask.js` at a faster tier/endpoint
+for the same model, or switch to a faster model the account can invoke (note: the
+trial key returns 404 "not found for account" for `nemotron-nano-3-30b-a3b` and
+`llama-3.1-nemotron-70b-instruct`, so model choice is constrained by what the key
+is provisioned for).
