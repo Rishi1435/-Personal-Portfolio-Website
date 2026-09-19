@@ -1,12 +1,14 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import ProjectQlue from './ProjectQlue';
 import ProjectXpensia from './ProjectXpensia';
-import VoicePipelineDemo from './VoicePipelineDemo';
-import QlueArchitecture from './QlueArchitecture';
 import ProjectMedia from './ProjectMedia';
 import ScrollReveal from './ScrollReveal';
+
+// Heavy, below-the-fold interactive demos — code-split out of the initial bundle.
+const VoicePipelineDemo = lazy(() => import('./VoicePipelineDemo'));
+const QlueArchitecture = lazy(() => import('./QlueArchitecture'));
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { FaGithub, FaExternalLinkAlt } from 'react-icons/fa';
 
@@ -679,14 +681,18 @@ const Projects = () => {
         {/* ── Live interactive demo of Qlue's voice pipeline ── */}
         <ScrollReveal delay={0.1}>
           <div className="mb-8">
-            <VoicePipelineDemo />
+            <Suspense fallback={<div className="min-h-[280px] rounded-2xl border border-white/[0.06] bg-white/[0.02]" />}>
+              <VoicePipelineDemo />
+            </Suspense>
           </div>
         </ScrollReveal>
 
         {/* ── Interactive Qlue architecture diagram ── */}
         <ScrollReveal delay={0.1}>
           <div className="mb-24">
-            <QlueArchitecture />
+            <Suspense fallback={<div className="min-h-[280px] rounded-2xl border border-white/[0.06] bg-white/[0.02]" />}>
+              <QlueArchitecture />
+            </Suspense>
           </div>
         </ScrollReveal>
 
