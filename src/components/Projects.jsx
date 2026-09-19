@@ -4,6 +4,7 @@ import { useInView } from 'react-intersection-observer';
 import ProjectQlue from './ProjectQlue';
 import ProjectXpensia from './ProjectXpensia';
 import VoicePipelineDemo from './VoicePipelineDemo';
+import QlueArchitecture from './QlueArchitecture';
 import ScrollReveal from './ScrollReveal';
 import { FaGithub, FaExternalLinkAlt } from 'react-icons/fa';
 
@@ -599,8 +600,15 @@ const Projects = () => {
 
         {/* ── Live interactive demo of Qlue's voice pipeline ── */}
         <ScrollReveal delay={0.1}>
-          <div className="mb-24">
+          <div className="mb-8">
             <VoicePipelineDemo />
+          </div>
+        </ScrollReveal>
+
+        {/* ── Interactive Qlue architecture diagram ── */}
+        <ScrollReveal delay={0.1}>
+          <div className="mb-24">
+            <QlueArchitecture />
           </div>
         </ScrollReveal>
 
