@@ -32,11 +32,12 @@ const CONTACT_EMAIL = 'pediredlarishi2005@gmail.com';
 const MAX_QUESTION_CHARS = 500;
 const RATE_LIMIT = 18; // questions per window
 const RATE_WINDOW_SEC = 3600; // 1 hour
-// This NIM model can be slow on the trial tier (~60s observed); abort rather
-// than hang. Tune with ASK_TIMEOUT_MS. Needs Vercel maxDuration >= this.
-const UPSTREAM_TIMEOUT_MS = Number(process.env.ASK_TIMEOUT_MS) || 55000;
+// Default 9.5s so we return a friendly message *before* Vercel's free (Hobby)
+// 10s function wall kills the request. gpt-oss-20b usually answers in 3-9s.
+// On a paid plan raise ASK_TIMEOUT_MS (and it can use the full maxDuration below).
+const UPSTREAM_TIMEOUT_MS = Number(process.env.ASK_TIMEOUT_MS) || 9500;
 
-// Allow the function to run long enough for a slow completion (Vercel Pro).
+// Upper bound if the plan allows it (Vercel Hobby clamps this to 10s, which is fine).
 export const config = { maxDuration: 60 };
 
 const SECTIONS = ['hero', 'about', 'experience', 'skills', 'qlue', 'xpensia', 'projects', 'contact'];
@@ -186,7 +187,7 @@ export default async function handler(req, res) {
         ],
         temperature: 0.2,
         top_p: 0.9,
-        max_tokens: 400,
+        max_tokens: 300, // 1-3 sentence answers for TTS; keeps latency under the free 10s wall
         // Keep reasoning cheap/off — this is short factual Q&A for TTS.
         ...modelTuning(MODEL),
       }),
