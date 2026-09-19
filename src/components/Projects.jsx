@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import ProjectQlue from './ProjectQlue';
@@ -7,6 +7,7 @@ import VoicePipelineDemo from './VoicePipelineDemo';
 import QlueArchitecture from './QlueArchitecture';
 import ProjectMedia from './ProjectMedia';
 import ScrollReveal from './ScrollReveal';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { FaGithub, FaExternalLinkAlt } from 'react-icons/fa';
 
 /* ─── Featured Project Data ────────────────────────────────── */
@@ -22,11 +23,11 @@ const projects = [
     tech: ['Flutter', 'Dart', 'Node.js', 'AWS Lambda', 'AWS SAM', 'Bedrock (Nemotron + Claude)', 'Amazon Polly', 'Textract', 'DynamoDB', 'S3', 'Firebase Auth', 'API Gateway', 'WebSocket', 'FCM'],
     github: 'https://github.com/Rishi1435/Qlue-v2',
     metrics: [
-      { value: '649', label: 'Students Reached' },
-      { value: '4', label: 'Interview Modes' },
-      { value: '<2s', label: 'AI Response Time' },
-      { value: '5', label: 'Polly AI Voices' },
-      { value: 'Top 5', label: 'Project Space Rank' },
+      { value: '649', label: 'Students Reached', note: 'Unique students who ran a Qlue session during the Project Space showcase.' },
+      { value: '4', label: 'Interview Modes', note: 'Resume-technical, HR-behavioural, self-introduction, and URL/website tutoring.' },
+      { value: '<2s', label: 'AI Response Time', note: 'End-of-turn to first audio byte, measured client-side across test sessions.' },
+      { value: '5', label: 'Polly AI Voices', note: 'Selectable Amazon Polly neural voices for the interviewer.' },
+      { value: 'Top 5', label: 'Project Space Rank', note: 'Placed top 5 of 160+ projects judged at Project Space.' },
     ],
     Visual: ProjectQlue,
     status: 'SOURCE',
@@ -42,9 +43,9 @@ const projects = [
     tech: ['Flutter', 'Dart', 'Firebase Auth', 'Google Sign-In', 'Node.js', 'Express', 'MongoDB Atlas', 'fl_chart', 'table_calendar', 'local_auth', 'Render'],
     github: 'https://github.com/Rishi1435/Xpensia',
     metrics: [
-      { value: '4', label: 'API Endpoints' },
-      { value: 'SMS', label: 'Auto-Import' },
-      { value: 'Bio', label: 'Biometric Lock' },
+      { value: '4', label: 'API Endpoints', note: 'POST/GET/PUT/DELETE on /transactions (Node + Express).' },
+      { value: 'SMS', label: 'Auto-Import', note: 'Parses bank SMS to auto-populate expense entries.' },
+      { value: 'Bio', label: 'Biometric Lock', note: 'Fingerprint / face unlock via Flutter local_auth.' },
     ],
     Visual: ProjectXpensia,
     status: 'SOURCE',
@@ -207,29 +208,63 @@ const TechBadge = ({ label, i }) => (
   </motion.span>
 );
 
-/* ─── Sub-Component: Metric Pill ───────────────────────────── */
-const Metric = ({ value, label }) => (
-  <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] group hover:border-[var(--color-accent)]/40 transition-all duration-300">
-    <span className="text-xl md:text-2xl font-display font-black text-[var(--color-accent-glow)] drop-shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent-glow)_40%,transparent)] group-hover:scale-105 transition-transform">
-      {value}
-    </span>
-    <span className="text-[10px] font-body text-[#a0a0b8] font-medium tracking-wider uppercase mt-1 text-center">
-      {label}
-    </span>
-  </div>
-);
+/* ─── Animated stat value — counts up from 0 on first view (integers only) ─── */
+const AnimatedNumber = ({ value }) => {
+  const isNumeric = /^\d+$/.test(String(value));
+  const target = isNumeric ? parseInt(value, 10) : 0;
+  const prefersReducedMotion = useReducedMotion();
+  const [n, setN] = useState(() => (!isNumeric || prefersReducedMotion ? target : 0));
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.4 });
 
-/* ─── Sub-Component: Featured Metric (larger, for Qlue) ────── */
-const FeaturedMetric = ({ value, label }) => (
-  <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] group hover:border-[var(--color-accent)]/40 transition-all duration-400">
-    <span className="text-2xl md:text-3xl font-display font-black text-[var(--color-accent-glow)] drop-shadow-[0_0_16px_color-mix(in_srgb,var(--color-accent-glow)_50%,transparent)] group-hover:scale-110 transition-transform duration-300">
-      {value}
-    </span>
-    <span className="text-[10px] font-body text-[#a0a0b8] font-medium tracking-wider uppercase mt-1.5 text-center">
-      {label}
-    </span>
-  </div>
-);
+  useEffect(() => {
+    if (!isNumeric || prefersReducedMotion || !inView) return;
+    const duration = 1200;
+    const start = performance.now();
+    const tick = (t) => {
+      const p = Math.min((t - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setN(Math.floor(eased * target));
+      if (p < 1) requestAnimationFrame(tick);
+      else setN(target);
+    };
+    requestAnimationFrame(tick);
+  }, [inView, isNumeric, prefersReducedMotion, target]);
+
+  return <span ref={ref}>{isNumeric ? n : value}</span>;
+};
+
+/* ─── Metric card with count-up + provenance affordance ─────── */
+const MetricCard = ({ value, label, note, size = 'sm' }) => {
+  const [open, setOpen] = useState(false);
+  const lg = size === 'lg';
+  return (
+    <div className={`relative flex flex-col items-center justify-center rounded-xl bg-white/[0.03] border border-white/[0.06] group hover:border-[var(--color-accent)]/40 transition-all duration-300 ${lg ? 'p-4 rounded-2xl' : 'p-3'}`}>
+      {note && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          aria-label={`How “${label}” is measured`}
+          title={note}
+          className="absolute top-1.5 right-1.5 w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold text-white/40 border border-white/15 hover:text-[var(--color-accent-glow)] hover:border-[var(--color-accent-glow)] transition-colors cursor-pointer focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--color-accent-glow)]"
+        >
+          i
+        </button>
+      )}
+      <span className={`font-display font-black text-[var(--color-accent-glow)] drop-shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent-glow)_40%,transparent)] group-hover:scale-105 transition-transform ${lg ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl'}`}>
+        <AnimatedNumber value={value} />
+      </span>
+      <span className={`font-body text-[#a0a0b8] font-medium tracking-wider uppercase text-center ${lg ? 'text-[10px] mt-1.5' : 'text-[10px] mt-1'}`}>
+        {label}
+      </span>
+      {open && note && (
+        <p role="note" className="mt-2 text-[10px] leading-snug font-body text-white/60 text-center normal-case">
+          {note}
+        </p>
+      )}
+    </div>
+  );
+};
 
 /* ─── Sub-Component: Magnetic Button ───────────────────────── */
 const MagneticButton = ({ href, children, className = '', featured = false }) => {
@@ -328,7 +363,7 @@ const FeaturedProjectCard = ({ project }) => {
 
           {/* Metrics strip — 5 metrics for Qlue */}
           <div className="relative z-10 mt-8 pt-6 border-t border-white/[0.08] grid grid-cols-3 sm:grid-cols-5 gap-3">
-            {metrics.map((m) => <FeaturedMetric key={m.label} {...m} />)}
+            {metrics.map((m) => <MetricCard key={m.label} size="lg" {...m} />)}
           </div>
         </div>
 
@@ -426,7 +461,7 @@ const ProjectCard = ({ project, reverse }) => {
 
           {/* Metrics strip */}
           <div className="relative z-10 mt-6 pt-5 border-t border-white/[0.08] grid grid-cols-3 gap-4">
-            {metrics.map((m) => <Metric key={m.label} {...m} />)}
+            {metrics.map((m) => <MetricCard key={m.label} size="sm" {...m} />)}
           </div>
         </div>
 
@@ -542,12 +577,27 @@ const CategorizedProjectCard = ({ project, cardIndex }) => {
   );
 };
 
+/* ─── Tab ⇄ URL slug mapping (shareable, back-button friendly) ─── */
+const CATEGORY_TABS = [
+  { key: 'ALL', slug: 'all', label: 'ALL PROJECTS', count: '12' },
+  { key: 'BACKEND & DISTRIBUTED SYSTEMS', slug: 'backend', label: 'BACKEND & DISTRIBUTED', count: '05' },
+  { key: 'FULL-STACK & MOBILE APPS', slug: 'fullstack', label: 'FULL-STACK & MOBILE', count: '03' },
+  { key: 'AI / ML & CLOUD INFRA', slug: 'ai', label: 'AI / ML & CLOUD', count: '04' },
+];
+const slugToKey = (slug) => CATEGORY_TABS.find((t) => t.slug === slug)?.key || 'ALL';
+const keyToSlug = (key) => CATEGORY_TABS.find((t) => t.key === key)?.slug || 'all';
+const readStackFromUrl = () => {
+  if (typeof window === 'undefined') return 'ALL';
+  return slugToKey(new URLSearchParams(window.location.search).get('stack'));
+};
+
 /* ─── Main Projects Component ──────────────────────────────── */
 const Projects = () => {
   const [sectionRef, sectionInView] = useInView({ triggerOnce: true, threshold: 0.05 });
-  const [activeTab, setActiveTab] = useState('ALL');
+  const [activeTab, setActiveTab] = useState(readStackFromUrl);
+  const tabRefs = useRef([]);
 
-  const allCategorizedList = categorizedProjects.flatMap(cat => 
+  const allCategorizedList = categorizedProjects.flatMap(cat =>
     cat.projects.map(p => ({ ...p, categoryName: cat.category }))
   );
 
@@ -555,12 +605,39 @@ const Projects = () => {
     ? allCategorizedList
     : allCategorizedList.filter(p => p.categoryName === activeTab);
 
-  const categoriesTabs = [
-    { key: 'ALL', label: 'ALL PROJECTS', count: '12' },
-    { key: 'BACKEND & DISTRIBUTED SYSTEMS', label: 'BACKEND & DISTRIBUTED', count: '05' },
-    { key: 'FULL-STACK & MOBILE APPS', label: 'FULL-STACK & MOBILE', count: '03' },
-    { key: 'AI / ML & CLOUD INFRA', label: 'AI / ML & CLOUD', count: '04' }
-  ];
+  const categoriesTabs = CATEGORY_TABS;
+
+  // Write the active filter to ?stack= so the view is shareable; pushState keeps
+  // the back button working across filter changes.
+  const selectTab = (key, { push = true } = {}) => {
+    setActiveTab(key);
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (key === 'ALL') url.searchParams.delete('stack');
+    else url.searchParams.set('stack', keyToSlug(key));
+    if (push) window.history.pushState({}, '', url);
+  };
+
+  // Sync when the user navigates back/forward.
+  useEffect(() => {
+    const onPop = () => setActiveTab(readStackFromUrl());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  // Left/right arrow navigation between tabs (roving focus).
+  const onTabKeyDown = (e) => {
+    const idx = categoriesTabs.findIndex((t) => t.key === activeTab);
+    let next = null;
+    if (e.key === 'ArrowRight') next = (idx + 1) % categoriesTabs.length;
+    else if (e.key === 'ArrowLeft') next = (idx - 1 + categoriesTabs.length) % categoriesTabs.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = categoriesTabs.length - 1;
+    if (next == null) return;
+    e.preventDefault();
+    selectTab(categoriesTabs[next].key);
+    tabRefs.current[next]?.focus();
+  };
 
   return (
     <motion.section 
@@ -634,16 +711,27 @@ const Projects = () => {
 
           {/* Interactive Tab Bar */}
           <div className="mb-12 flex flex-col items-center">
-            <div className="inline-flex flex-wrap items-center justify-center gap-2 p-2 glass-card !rounded-2xl">
-              {categoriesTabs.map((tab) => {
+            <div
+              role="tablist"
+              aria-label="Filter projects by stack"
+              onKeyDown={onTabKeyDown}
+              className="inline-flex flex-wrap items-center justify-center gap-2 p-2 glass-card !rounded-2xl"
+            >
+              {categoriesTabs.map((tab, i) => {
                 const isActive = activeTab === tab.key;
                 return (
                   <button
                     key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
-                    className={`relative px-4 sm:px-5 py-2.5 rounded-xl font-body text-xs font-bold tracking-wider transition-all duration-300 flex items-center gap-2 cursor-pointer ${
-                      isActive 
-                        ? 'text-white' 
+                    ref={(el) => (tabRefs.current[i] = el)}
+                    role="tab"
+                    id={`tab-${tab.slug}`}
+                    aria-selected={isActive}
+                    aria-controls="projects-panel"
+                    tabIndex={isActive ? 0 : -1}
+                    onClick={() => selectTab(tab.key)}
+                    className={`relative px-4 sm:px-5 py-2.5 rounded-xl font-body text-xs font-bold tracking-wider transition-all duration-300 flex items-center gap-2 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent-glow)] ${
+                      isActive
+                        ? 'text-white'
                         : 'text-[#a0a0b8] hover:text-white hover:bg-white/5'
                     }`}
                   >
@@ -668,8 +756,11 @@ const Projects = () => {
           </div>
 
           {/* Filtered Projects Grid — staggered entry */}
-          <motion.div 
-            layout 
+          <motion.div
+            layout
+            id="projects-panel"
+            role="tabpanel"
+            aria-label={`${categoriesTabs.find((t) => t.key === activeTab)?.label || 'All'} projects`}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch"
           >
             <AnimatePresence mode="popLayout">
