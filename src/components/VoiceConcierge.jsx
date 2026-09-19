@@ -24,6 +24,13 @@ const SECTION_TARGETS = {
 const TRANSFORMERS_CDN = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6';
 const WHISPER_MODEL = 'Xenova/whisper-tiny.en';
 
+// Optional HD voice: Kokoro (the most natural open TTS right now), loaded on
+// demand from a CDN (never bundled), q8 quantized (~80MB one-time, browser-cached).
+// Opt-in only — default TTS stays the free, zero-download native voice.
+const KOKORO_CDN = 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm';
+const KOKORO_MODEL = 'onnx-community/Kokoro-82M-v1.0-ONNX';
+const KOKORO_VOICE = 'af_heart'; // top-graded natural American voice
+
 // Rank the browser's available voices so we pick the most natural one instead of
 // whatever robotic default the OS hands out. Prefers neural/cloud voices
 // (Microsoft "…Online (Natural)" on Edge, "Google …" on Chrome, Apple premium)
@@ -76,6 +83,10 @@ const VoiceConcierge = () => {
   const [answer, setAnswer] = useState('');
   const [notice, setNotice] = useState('');
   const [typed, setTyped] = useState('');
+  const [hdVoice, setHdVoice] = useState(
+    () => typeof localStorage !== 'undefined' && localStorage.getItem('hdVoice') === '1'
+  );
+  const [ttsStatus, setTtsStatus] = useState('idle'); // idle | loading | ready
 
   const panelRef = useRef(null);
   const triggerRef = useRef(null);
@@ -87,6 +98,9 @@ const VoiceConcierge = () => {
   const lastHighlight = useRef(null);
   const voicesRef = useRef([]);
   const bestVoiceRef = useRef(null);
+  const kokoroRef = useRef(null);
+  const audioRef = useRef(null);
+  const audioUrlRef = useRef(null);
 
   // Voices load asynchronously; cache them and keep the best pick fresh.
   useEffect(() => {
@@ -100,7 +114,7 @@ const VoiceConcierge = () => {
     return () => speechSynthesis.removeEventListener?.('voiceschanged', load);
   }, []);
 
-  const speak = useCallback((text) => {
+  const speakNative = useCallback((text) => {
     if (typeof speechSynthesis === 'undefined') { setPhase('idle'); return; }
     try {
       speechSynthesis.cancel();
@@ -116,6 +130,43 @@ const VoiceConcierge = () => {
       speechSynthesis.speak(u);
     } catch { setPhase('idle'); }
   }, []);
+
+  // Load Kokoro on demand (from CDN, cached by the browser after first use).
+  const loadKokoro = useCallback(async () => {
+    if (kokoroRef.current) return kokoroRef.current;
+    setTtsStatus('loading');
+    const mod = await import(/* @vite-ignore */ KOKORO_CDN);
+    const tts = await mod.KokoroTTS.from_pretrained(KOKORO_MODEL, { dtype: 'q8', device: 'wasm' });
+    kokoroRef.current = tts;
+    setTtsStatus('ready');
+    return tts;
+  }, []);
+
+  const speakHD = useCallback(async (text) => {
+    setPhase('speaking');
+    try {
+      const tts = await loadKokoro();
+      const audio = await tts.generate(text, { voice: KOKORO_VOICE });
+      const url = URL.createObjectURL(audio.toBlob());
+      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = url;
+      if (!audioRef.current) audioRef.current = new Audio();
+      const el = audioRef.current;
+      el.src = url;
+      el.onended = () => setPhase('idle');
+      el.onerror = () => setPhase('idle');
+      await el.play();
+    } catch {
+      // Any failure (CDN/model/inference) → fall back to the free native voice.
+      setTtsStatus('idle');
+      speakNative(text);
+    }
+  }, [loadKokoro, speakNative]);
+
+  const speak = useCallback((text) => {
+    if (hdVoice) speakHD(text);
+    else speakNative(text);
+  }, [hdVoice, speakHD, speakNative]);
 
   const highlightSection = useCallback((section) => {
     const sel = SECTION_TARGETS[section];
@@ -174,6 +225,7 @@ const VoiceConcierge = () => {
     try { mediaRef.current?.state === 'recording' && mediaRef.current.stop(); } catch { /* noop */ }
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+    try { audioRef.current?.pause(); } catch { /* noop */ }
   }, []);
 
   const startNative = useCallback(() => {
@@ -252,7 +304,7 @@ const VoiceConcierge = () => {
   }, [ask, loadTranscriber]);
 
   const toggleListening = useCallback(() => {
-    if (phase === 'speaking') { try { speechSynthesis.cancel(); } catch { /* noop */ } setPhase('idle'); return; }
+    if (phase === 'speaking') { try { speechSynthesis.cancel(); } catch { /* noop */ } try { audioRef.current?.pause(); } catch { /* noop */ } setPhase('idle'); return; }
     if (phase === 'listening') {
       if (engine === 'native') { try { recognitionRef.current?.stop(); } catch { /* noop */ } }
       else { try { mediaRef.current?.stop(); } catch { /* noop */ } }
@@ -268,6 +320,14 @@ const VoiceConcierge = () => {
     if (!typed.trim()) return;
     ask(typed);
     setTyped('');
+  };
+
+  const toggleHd = (on) => {
+    setHdVoice(on);
+    try { localStorage.setItem('hdVoice', on ? '1' : '0'); } catch { /* private mode */ }
+    setNotice('');
+    // Start the one-time model download immediately for feedback.
+    if (on && !kokoroRef.current) loadKokoro().catch(() => { setTtsStatus('idle'); setNotice('HD voice failed to load — using the standard voice.'); });
   };
 
   const closePanel = useCallback(() => {
@@ -416,6 +476,25 @@ const VoiceConcierge = () => {
                 Ask
               </button>
             </form>
+
+            {/* HD voice — opt-in neural TTS (one-time ~80MB download, cached) */}
+            <div className="flex items-center justify-between gap-2">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={hdVoice}
+                  onChange={(e) => toggleHd(e.target.checked)}
+                  className="accent-[var(--color-accent)] w-3.5 h-3.5"
+                />
+                <span className="font-mono text-[10px] text-white/60">
+                  HD voice{' '}
+                  <span className="text-white/30">
+                    {ttsStatus === 'loading' ? '· downloading…' : ttsStatus === 'ready' ? '· ready' : '· ~80MB once'}
+                  </span>
+                </span>
+              </label>
+            </div>
+
             <p className="font-mono text-[9px] text-white/25 text-center">
               Turn-based Q&amp;A · answers only about Rishi &amp; his work
             </p>
