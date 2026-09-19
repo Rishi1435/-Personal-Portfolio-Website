@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import About from './components/About';
@@ -10,6 +10,9 @@ import LoadingScreen from './components/LoadingScreen';
 import CommandPalette from './components/CommandPalette';
 import MobileActionBar from './components/MobileActionBar';
 import { motion, useScroll, useSpring, AnimatePresence } from 'framer-motion';
+
+// Lazy — the concierge (and its on-demand WASM STT) stays out of the initial bundle.
+const VoiceConcierge = lazy(() => import('./components/VoiceConcierge'));
 
 const isFinePointer = () =>
   typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches;
@@ -187,6 +190,11 @@ function App() {
 
       {/* Sticky mobile action bar (Résumé / Contact) */}
       <MobileActionBar />
+
+      {/* AI voice concierge (lazy) */}
+      <Suspense fallback={null}>
+        <VoiceConcierge />
+      </Suspense>
 
       {/* Modern Emerald Gradient Scroll Progress Bar */}
       <motion.div 

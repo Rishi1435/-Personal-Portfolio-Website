@@ -127,7 +127,7 @@ const CommandPalette = () => {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open command palette"
-        className="md:hidden fixed bottom-20 right-5 z-[9998] w-12 h-12 rounded-full bg-[var(--color-accent)] text-black flex items-center justify-center shadow-[0_6px_24px_color-mix(in_srgb,var(--color-accent)_45%,transparent)] active:scale-95 transition-transform"
+        className="md:hidden fixed bottom-20 left-5 z-[9998] w-12 h-12 rounded-full bg-[var(--color-accent)] text-black flex items-center justify-center shadow-[0_6px_24px_color-mix(in_srgb,var(--color-accent)_45%,transparent)] active:scale-95 transition-transform"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M4 12h16M4 17h10" />

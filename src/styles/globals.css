@@ -254,8 +254,19 @@ body::after {
   }
 }
 
+/* Concierge section-highlight pulse — applied briefly when the assistant
+   scrolls to the section its answer is about. */
+.section-highlight {
+  animation: section-pulse 1.8s ease-out 1;
+}
+@keyframes section-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 55%, transparent); }
+  100% { box-shadow: 0 0 0 22px transparent; }
+}
+
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
+  .section-highlight { animation: none !important; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

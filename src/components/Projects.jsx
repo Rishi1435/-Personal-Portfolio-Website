@@ -317,6 +317,8 @@ const FeaturedProjectCard = ({ project }) => {
   return (
     <motion.article
       ref={ref}
+      id={`${project.id}-card`}
+      style={{ scrollMarginTop: '90px' }}
       initial={{ opacity: 0, y: 40 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
@@ -418,6 +420,8 @@ const ProjectCard = ({ project, reverse }) => {
   return (
     <motion.article
       ref={ref}
+      id={`${project.id}-card`}
+      style={{ scrollMarginTop: '90px' }}
       initial={{ opacity: 0, y: 30 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.5, delay: 0.1 }}
