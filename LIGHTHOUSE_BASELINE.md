@@ -73,3 +73,35 @@ and again in Phase 6 (see below).
 
 LCP is now gated mainly by First Contentful Paint (the client bundle must execute
 before anything paints). Phase 2's meta/prerender work targets that ceiling.
+
+---
+
+## Final — after all phases (Phase 6)
+
+| Metric | Baseline | Final | Δ vs baseline |
+| --- | --- | --- | --- |
+| **Performance score** | 41 | **69** | **+28** |
+| **LCP** | 11.0 s | **3.5 s** | **−7.5 s** |
+| **TBT** | 1,250 ms | **550 ms** | −700 ms |
+| **CLS** | 0.038 | **0.019** | −0.019 |
+| First Contentful Paint | 3.2 s | 2.8 s | −0.4 s |
+| Speed Index | 5.2 s | 4.8 s | −0.4 s |
+| Best Practices | — | **100** | — |
+| Console errors on load | — | **none** | — |
+
+LCP is **materially better than baseline** (11.0 s → 3.5 s), which was the goal
+of tasks 1–2.
+
+The performance score sits at 69 vs the 75 measured right after Phase 1: Phase 5
+added three interactive features (the getUserMedia voice demo, the terminal REPL,
+and the command palette), which grew the client bundle (~483 kB → ~508 kB) and
+nudged TBT up. That is an intentional trade — the brief explicitly asked for those
+features — and the dominant metric, LCP, stayed far below baseline. (Simulated
+throttling also varies a few points run-to-run.)
+
+**Documented follow-up (not done here to keep Phase 6 verification-only):** the
+build warns the main chunk is >500 kB. `React.lazy` on the below-the-fold
+`VoicePipelineDemo` and `CommandPalette` would trim initial JS and recover TBT.
+
+**Best Practices = 100** and the `errors-in-console` audit reported **no console
+errors or warnings** on load.
