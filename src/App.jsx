@@ -8,6 +8,7 @@ import Contact from './components/Contact';
 import Footer from './components/Footer';
 import LoadingScreen from './components/LoadingScreen';
 import CommandPalette from './components/CommandPalette';
+import MobileActionBar from './components/MobileActionBar';
 import { motion, useScroll, useSpring, AnimatePresence } from 'framer-motion';
 
 const isFinePointer = () =>
@@ -183,6 +184,9 @@ function App() {
 
       {/* Command Palette — Cmd/Ctrl+K (button on mobile) */}
       <CommandPalette />
+
+      {/* Sticky mobile action bar (Résumé / Contact) */}
+      <MobileActionBar />
 
       {/* Modern Emerald Gradient Scroll Progress Bar */}
       <motion.div 

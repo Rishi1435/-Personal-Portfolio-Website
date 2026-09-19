@@ -522,7 +522,7 @@ const CategorizedProjectCard = ({ project, cardIndex }) => {
         y: -6,
         transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] }
       }}
-      className="glass-card p-6 md:p-7 flex flex-col justify-between h-full group"
+      className="glass-card p-6 md:p-7 flex flex-col justify-between h-full group shrink-0 snap-center w-[85%] sm:w-[60%] md:w-auto"
     >
       {/* Header section */}
       <div className="relative z-10 mb-6 flex-1 flex flex-col">
@@ -755,20 +755,25 @@ const Projects = () => {
             </div>
           </div>
 
-          {/* Filtered Projects Grid — staggered entry */}
-          <motion.div
-            layout
+          {/* Mobile swipe hint */}
+          <div className="md:hidden flex items-center justify-center gap-2 mb-3 text-white/40 font-mono text-[10px] uppercase tracking-wider">
+            <span>Swipe</span>
+            <span aria-hidden="true">→</span>
+          </div>
+
+          {/* Filtered Projects — horizontal snap carousel on mobile, grid on md+ */}
+          <div
             id="projects-panel"
             role="tabpanel"
             aria-label={`${categoriesTabs.find((t) => t.key === activeTab)?.label || 'All'} projects`}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch"
+            className="flex md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none -mx-6 px-6 md:mx-0 md:px-0 pb-4 md:pb-0 [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             <AnimatePresence mode="popLayout">
               {filteredProjects.map((project, i) => (
                 <CategorizedProjectCard key={project.id} project={project} cardIndex={i} />
               ))}
             </AnimatePresence>
-          </motion.div>
+          </div>
 
         </div>
 

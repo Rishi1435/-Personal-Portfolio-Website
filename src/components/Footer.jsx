@@ -7,7 +7,7 @@ const Footer = () => {
         background: 'rgba(0, 0, 0, 0.6)',
         borderTop: '1px solid rgba(255, 255, 255, 0.06)'
       }}
-      className="relative py-12 overflow-hidden backdrop-blur-md"
+      className="relative py-12 pb-28 md:pb-12 overflow-hidden backdrop-blur-md"
     >
       <div className="container max-w-[1280px] mx-auto px-6 md:px-12 flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
         
