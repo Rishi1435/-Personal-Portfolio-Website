@@ -24,6 +24,29 @@ const SECTION_TARGETS = {
 const TRANSFORMERS_CDN = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6';
 const WHISPER_MODEL = 'Xenova/whisper-tiny.en';
 
+// Rank the browser's available voices so we pick the most natural one instead of
+// whatever robotic default the OS hands out. Prefers neural/cloud voices
+// (Microsoft "…Online (Natural)" on Edge, "Google …" on Chrome, Apple premium)
+// and demotes the old SAPI voices (David/Zira/Mark/Hazel).
+const scoreVoice = (v) => {
+  const lang = (v.lang || '').toLowerCase();
+  if (!lang.startsWith('en')) return -1;
+  const n = (v.name || '').toLowerCase();
+  let s = lang === 'en-us' ? 3 : lang === 'en-gb' ? 2 : 1;
+  if (/natural|online/.test(n)) s += 20;                 // MS neural (Edge)
+  if (/premium|enhanced|siri/.test(n)) s += 16;          // Apple premium
+  if (/\bgoogle\b/.test(n)) s += 12;                     // Chrome
+  if (/aria|jenny|guy|libby|emma|michelle|ava|zoe|samantha|serena|allison|nicky|sonia|ryan/.test(n)) s += 8;
+  if (v.localService === false) s += 4;                  // network voices are usually better
+  if (/david|zira|mark|hazel|susan|george/.test(n)) s -= 6; // legacy robotic SAPI
+  return s;
+};
+const pickBestVoice = (voices) => {
+  const en = (voices || []).filter((v) => (v.lang || '').toLowerCase().startsWith('en'));
+  if (!en.length) return null;
+  return en.map((v) => [scoreVoice(v), v]).sort((a, b) => b[0] - a[0])[0][1];
+};
+
 const getNativeSR = () =>
   typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
 
@@ -62,17 +85,31 @@ const VoiceConcierge = () => {
   const streamRef = useRef(null);
   const transcriberRef = useRef(null);
   const lastHighlight = useRef(null);
+  const voicesRef = useRef([]);
+  const bestVoiceRef = useRef(null);
+
+  // Voices load asynchronously; cache them and keep the best pick fresh.
+  useEffect(() => {
+    if (typeof speechSynthesis === 'undefined') return;
+    const load = () => {
+      voicesRef.current = speechSynthesis.getVoices();
+      bestVoiceRef.current = pickBestVoice(voicesRef.current);
+    };
+    load();
+    speechSynthesis.addEventListener?.('voiceschanged', load);
+    return () => speechSynthesis.removeEventListener?.('voiceschanged', load);
+  }, []);
 
   const speak = useCallback((text) => {
     if (typeof speechSynthesis === 'undefined') { setPhase('idle'); return; }
     try {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      const voices = speechSynthesis.getVoices();
-      u.voice =
-        voices.find((v) => /en(-|_)?(US|GB)/i.test(v.lang) && /female|samantha|zira|google/i.test(v.name)) ||
-        voices.find((v) => v.lang?.startsWith('en')) || null;
-      u.rate = 1.02; u.pitch = 1;
+      // Voices may not have been ready at mount — re-pick if needed.
+      const voice = bestVoiceRef.current || pickBestVoice(speechSynthesis.getVoices());
+      if (voice) u.voice = voice;
+      u.lang = voice?.lang || 'en-US';
+      u.rate = 1; u.pitch = 1; u.volume = 1;
       u.onend = () => setPhase('idle');
       u.onerror = () => setPhase('idle');
       setPhase('speaking');
