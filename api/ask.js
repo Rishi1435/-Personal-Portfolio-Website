@@ -14,8 +14,19 @@ import { readFileSync } from 'node:fs';
  * server-side (validating `section` against a fixed enum). Simpler and robust.
  */
 
-const MODEL = 'nvidia/nemotron-3.5-lightning-30b-a3b';
+// The spec's nvidia/nemotron-3.5-lightning-30b-a3b works but responds in ~50-110s
+// on the trial tier (verified live) — unusable for a live concierge. openai/gpt-oss-20b
+// is provisioned for the same key and answers in ~3s with clean grounded JSON, so
+// it's the default. Override with ASK_MODEL if a faster tier makes the Nemotron viable.
+const MODEL = process.env.ASK_MODEL || 'openai/gpt-oss-20b';
 const NVIDIA_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
+
+// Per-model knobs to keep the reply short and reasoning cheap.
+const modelTuning = (model) => {
+  if (model.includes('nemotron')) return { chat_template_kwargs: { enable_thinking: false } };
+  if (model.includes('gpt-oss')) return { reasoning_effort: 'low' };
+  return {};
+};
 const CONTACT_EMAIL = 'pediredlarishi2005@gmail.com';
 
 const MAX_QUESTION_CHARS = 500;
@@ -176,8 +187,8 @@ export default async function handler(req, res) {
         temperature: 0.2,
         top_p: 0.9,
         max_tokens: 400,
-        // Nemotron: disable reasoning — this is short factual Q&A for TTS.
-        chat_template_kwargs: { enable_thinking: false },
+        // Keep reasoning cheap/off — this is short factual Q&A for TTS.
+        ...modelTuning(MODEL),
       }),
     });
 
