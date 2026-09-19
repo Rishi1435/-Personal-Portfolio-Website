@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const navLinks = [
@@ -13,6 +13,53 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
+  const toggleBtnRef = useRef(null);
+  const mobileNavRef = useRef(null);
+  const wasOpen = useRef(false);
+
+  // Focus management + trap while the mobile menu is open.
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const overlay = mobileNavRef.current;
+    const getFocusable = () =>
+      overlay
+        ? Array.from(overlay.querySelectorAll('a[href], button:not([disabled])'))
+        : [];
+
+    // Move focus to the first link when the menu opens.
+    overlay?.querySelector('a[href]')?.focus();
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false);
+        return;
+      }
+      if (e.key === 'Tab') {
+        const items = getFocusable();
+        if (items.length === 0) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen]);
+
+  // Return focus to the toggle button when the menu closes.
+  useEffect(() => {
+    if (wasOpen.current && !mobileMenuOpen) {
+      toggleBtnRef.current?.focus();
+    }
+    wasOpen.current = mobileMenuOpen;
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -112,9 +159,12 @@ const Navbar = () => {
 
         {/* Mobile Nav Toggle */}
         <button
-          className="md:hidden text-white focus:outline-none cursor-pointer"
+          ref={toggleBtnRef}
+          className="md:hidden text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#00C853] rounded cursor-pointer"
           onClick={() => setMobileMenuOpen(true)}
           aria-label="Open Menu"
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-menu"
         >
           <svg className="w-8 h-8 text-[#00C853]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -126,6 +176,11 @@ const Navbar = () => {
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
+            ref={mobileNavRef}
+            id="mobile-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Site navigation"
             initial={{ opacity: 0, x: '100%' }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '100%' }}
@@ -134,7 +189,7 @@ const Navbar = () => {
           >
             {/* Close Button */}
             <button
-              className="absolute top-6 right-6 text-white focus:outline-none cursor-pointer"
+              className="absolute top-6 right-6 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#00C853] rounded cursor-pointer"
               onClick={() => setMobileMenuOpen(false)}
               aria-label="Close Menu"
             >

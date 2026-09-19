@@ -117,8 +117,10 @@ const Hero = () => {
               </motion.div>
             </motion.div>
 
-            {/* Layer 3: Outline text overlay */}
-            <motion.h1
+            {/* Layer 3: Outline text overlay — purely decorative (stroke layer),
+                hidden from assistive tech so the name/title are announced once. */}
+            <motion.div
+              aria-hidden="true"
               initial={{ opacity: 0, y: 30, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
@@ -136,7 +138,7 @@ const Hero = () => {
               >
                 Full Stack Developer
               </span>
-            </motion.h1>
+            </motion.div>
           </div>
 
           {/* RIGHT HUD card — full width on mobile, 1 col on desktop */}
