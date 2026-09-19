@@ -27,9 +27,7 @@ const WHISPER_MODEL = 'Xenova/whisper-tiny.en';
 // Optional HD voice: Kokoro (the most natural open TTS right now), loaded on
 // demand from a CDN (never bundled), q8 quantized (~80MB one-time, browser-cached).
 // Opt-in only — default TTS stays the free, zero-download native voice.
-const KOKORO_CDN = 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm';
-const KOKORO_MODEL = 'onnx-community/Kokoro-82M-v1.0-ONNX';
-const KOKORO_VOICE = 'af_heart'; // top-graded natural American voice
+const KOKORO_VOICE = 'af_heart'; // top-graded natural American voice (model runs in a worker)
 
 // Rank the browser's available voices so we pick the most natural one instead of
 // whatever robotic default the OS hands out. Prefers neural/cloud voices
@@ -98,7 +96,10 @@ const VoiceConcierge = () => {
   const lastHighlight = useRef(null);
   const voicesRef = useRef([]);
   const bestVoiceRef = useRef(null);
-  const kokoroRef = useRef(null);
+  const workerRef = useRef(null);
+  const readyRef = useRef(null);        // { promise, resolve, reject } for model load
+  const pendingRef = useRef(new Map()); // requestId -> { resolve, reject }
+  const reqIdRef = useRef(0);
   const audioRef = useRef(null);
   const audioUrlRef = useRef(null);
   const speakTimerRef = useRef(null);
@@ -162,25 +163,62 @@ const VoiceConcierge = () => {
     } catch { finishSpeaking(); }
   }, [finishSpeaking, armWatchdog]);
 
-  // Load Kokoro on demand (from CDN, cached by the browser after first use).
-  const loadKokoro = useCallback(async () => {
-    if (kokoroRef.current) return kokoroRef.current;
-    setTtsStatus('loading');
-    const mod = await import(/* @vite-ignore */ KOKORO_CDN);
-    const tts = await mod.KokoroTTS.from_pretrained(KOKORO_MODEL, { dtype: 'q8', device: 'wasm' });
-    kokoroRef.current = tts;
-    setTtsStatus('ready');
-    return tts;
+  // Kokoro runs in a Web Worker so model load + inference never block the main
+  // thread (that was the "Page Unresponsive" freeze).
+  const ensureWorker = useCallback(() => {
+    if (workerRef.current) return workerRef.current;
+    const w = new Worker(new URL('../workers/kokoroWorker.js', import.meta.url), { type: 'module' });
+    w.onmessage = (e) => {
+      const { type, id, buffer, mime, message } = e.data || {};
+      if (type === 'ready') { setTtsStatus('ready'); readyRef.current?.resolve?.(); return; }
+      if (type === 'audio') { pendingRef.current.get(id)?.resolve({ buffer, mime }); pendingRef.current.delete(id); return; }
+      if (type === 'error') {
+        const err = new Error(message || 'tts worker error');
+        if (id != null && pendingRef.current.has(id)) { pendingRef.current.get(id).reject(err); pendingRef.current.delete(id); }
+        else { readyRef.current?.reject?.(err); readyRef.current = null; }
+      }
+    };
+    w.onerror = () => {
+      const err = new Error('tts worker crashed');
+      readyRef.current?.reject?.(err); readyRef.current = null;
+      pendingRef.current.forEach((p) => p.reject(err)); pendingRef.current.clear();
+    };
+    workerRef.current = w;
+    return w;
   }, []);
+
+  const loadKokoro = useCallback(() => {
+    const w = ensureWorker();
+    if (readyRef.current?.promise) return readyRef.current.promise;
+    setTtsStatus('loading');
+    let resolve, reject;
+    const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+    readyRef.current = { promise, resolve, reject };
+    w.postMessage({ type: 'load' });
+    return promise;
+  }, [ensureWorker]);
+
+  const generateHD = useCallback((text) => {
+    const w = ensureWorker();
+    const id = ++reqIdRef.current;
+    return new Promise((resolve, reject) => {
+      const to = setTimeout(() => { if (pendingRef.current.delete(id)) reject(new Error('tts timeout')); }, 60000);
+      pendingRef.current.set(id, {
+        resolve: (v) => { clearTimeout(to); resolve(v); },
+        reject: (e) => { clearTimeout(to); reject(e); },
+      });
+      w.postMessage({ type: 'generate', id, text, voice: KOKORO_VOICE });
+    });
+  }, [ensureWorker]);
 
   const speakHD = useCallback(async (text) => {
     setPhase('speaking');
     // Generous watchdog to cover a slow first-time model download; cleared on end.
     armWatchdog(120000);
     try {
-      const tts = await loadKokoro();
-      const audio = await tts.generate(text, { voice: KOKORO_VOICE });
-      const url = URL.createObjectURL(audio.toBlob());
+      await loadKokoro();
+      const { buffer, mime } = await generateHD(text);
+      const url = URL.createObjectURL(new Blob([buffer], { type: mime || 'audio/wav' }));
       if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
       audioUrlRef.current = url;
       if (!audioRef.current) audioRef.current = new Audio();
@@ -193,11 +231,11 @@ const VoiceConcierge = () => {
       const dur = Number.isFinite(el.duration) ? el.duration * 1000 : text.length * 90 + 4000;
       armWatchdog(Math.min(60000, dur + 4000));
     } catch {
-      // Any failure (CDN/model/inference/autoplay) → free native voice fallback.
+      // Any failure (worker/model/inference/autoplay) → free native voice fallback.
       setTtsStatus('idle');
       speakNative(text);
     }
-  }, [loadKokoro, speakNative, finishSpeaking, armWatchdog]);
+  }, [loadKokoro, generateHD, speakNative, finishSpeaking, armWatchdog]);
 
   const speak = useCallback((text) => {
     if (hdVoice) speakHD(text);
@@ -368,7 +406,7 @@ const VoiceConcierge = () => {
     try { localStorage.setItem('hdVoice', on ? '1' : '0'); } catch { /* private mode */ }
     setNotice('');
     // Start the one-time model download immediately for feedback.
-    if (on && !kokoroRef.current) loadKokoro().catch(() => { setTtsStatus('idle'); setNotice('HD voice failed to load — using the standard voice.'); });
+    if (on && !readyRef.current?.promise) loadKokoro().catch(() => { setTtsStatus('idle'); setNotice('HD voice failed to load — using the standard voice.'); });
   };
 
   const closePanel = useCallback(() => {
@@ -395,7 +433,11 @@ const VoiceConcierge = () => {
     }
   }, [open, stopEverything]);
 
-  useEffect(() => () => { stopEverything(); try { speechSynthesis?.cancel(); } catch { /* noop */ } }, [stopEverything]);
+  useEffect(() => () => {
+    stopEverything();
+    try { speechSynthesis?.cancel(); } catch { /* noop */ }
+    try { workerRef.current?.terminate(); } catch { /* noop */ }
+  }, [stopEverything]);
 
   const phaseLabel = {
     idle: 'Tap the mic and ask about Rishi',
