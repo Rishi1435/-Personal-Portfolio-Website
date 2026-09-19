@@ -19,8 +19,8 @@ export default defineConfig([
     },
   },
   {
-    // Serverless functions run in Node, not the browser.
-    files: ['api/**/*.js'],
+    // Serverless functions and build config run in Node, not the browser.
+    files: ['api/**/*.js', 'vite.config.js'],
     extends: [js.configs.recommended],
     languageOptions: {
       globals: { ...globals.node },
