@@ -7,7 +7,7 @@ Everything here runs on free tiers with **no server cost, no paid TTS/STT/API**:
 | Static site + `/api/ask` | **Vercel Hobby** (free): static build + serverless function in one deploy |
 | LLM | NVIDIA NIM **trial** key (free), called only from the server function |
 | STT | Browser `SpeechRecognition` (free) → WASM Whisper from a CDN (free, on-device) → typed input |
-| TTS | Default: browser `SpeechSynthesis` (free, on-device, instant). Opt-in: Kokoro HD (free, on-device WASM, one-time ~80MB download) |
+| TTS | Browser `SpeechSynthesis` (free, on-device, instant); the client ranks the OS voices and the visitor can pick one |
 | Rate limiting | In-memory by default (free); optional free Upstash tier |
 
 ## Use Vercel, not Render (for the free tier)
@@ -44,12 +44,11 @@ the `/api/ask` Node function.) So: **Vercel Hobby**.
 - The Whisper STT model (~tens of MB) downloads from a CDN **only** on browsers
   without native `SpeechRecognition` (Firefox/Safari), and is cached after first
   use. It never touches your server.
-- **TTS is on-device, no server.** The default voice is the browser's own
-  `SpeechSynthesis` — instant, free, no network round-trip, decent on modern
-  Chrome/Edge/Mac (the client ranks the OS voices and picks the most natural one).
-  The concierge also offers an opt-in **HD voice** (Kokoro, a neural TTS that runs
-  fully on-device via WASM) behind a toggle; it's a one-time ~80MB download, cached
-  by the browser, so it's off by default and only fetched when a visitor asks for
-  it. Neither path costs anything or needs an API key.
+- **TTS is on-device, no server.** The voice is the browser's own
+  `SpeechSynthesis` — instant, free, and no network round-trip. The client ranks
+  the OS voices and picks the most natural one, and the concierge exposes a picker
+  so the visitor can choose another. Quality depends on the browser: **Microsoft
+  Edge** on Windows exposes far better "Online (Natural)" neural voices than Chrome
+  (the ranker auto-prefers them when present). No API key, no download.
 - Update `og:url` / `canonical` in `index.html` if your final domain differs from
   `rishipediredla.vercel.app`.

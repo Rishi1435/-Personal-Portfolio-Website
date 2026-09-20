@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { openResume } from '../lib/resume';
 
 /*
  * Interactive terminal REPL for the About section.
@@ -6,8 +7,6 @@ import { useState, useRef, useEffect, useCallback } from 'react';
  * arrow-key history, Tab completion, clickable suggestions, and an
  * aria-live output region so screen readers hear each result.
  */
-
-const RESUME_URL = '/Rishi_Pediredla_Resume.pdf';
 
 const COMMANDS = ['whoami', 'about', 'experience', 'skills', 'projects', 'resume', 'contact', 'help', 'clear'];
 
@@ -46,7 +45,7 @@ const OUTPUTS = {
     '  experience  roles & timeline',
     '  skills      tech stack',
     '  projects    featured work',
-    '  resume      download my résumé',
+    '  resume      preview my résumé',
     '  contact     jump to the contact form',
     '  clear       clear the screen',
     '  help        show this list',
@@ -97,13 +96,8 @@ const TerminalREPL = () => {
     if (name === 'clear') { setEntries([]); return; }
 
     if (name === 'resume') {
-      const a = document.createElement('a');
-      a.href = RESUME_URL;
-      a.download = 'Rishi_Pediredla_Resume.pdf';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      push({ type: 'out', lines: ['Downloading Rishi_Pediredla_Resume.pdf…'] });
+      openResume();
+      push({ type: 'out', lines: ['Opening résumé preview…'] });
       return;
     }
 

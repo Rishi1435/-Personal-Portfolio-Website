@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import Portfolio from './pages/Portfolio';
 import QlueLive from './pages/QlueLive';
 import LoadingScreen from './components/LoadingScreen';
+import ResumeModal from './components/ResumeModal';
 import { motion, useScroll, useSpring, AnimatePresence } from 'framer-motion';
 
 const isFinePointer = () =>
@@ -241,6 +242,9 @@ function App() {
           <Route path="/qlue-live" element={<QlueLive />} />
         </Routes>
       </div>
+
+      {/* Global résumé preview (opened via openResume() from anywhere) */}
+      <ResumeModal />
     </div>
   );
 }

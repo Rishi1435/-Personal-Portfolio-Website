@@ -5,7 +5,7 @@ const ProjectQlue = () => {
   const a = !prefersReducedMotion;
 
   return (
-    <div className="relative w-full h-52 flex items-center justify-center bg-[#030303] rounded-xl overflow-hidden border border-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] group-hover:border-[color-mix(in_srgb,var(--color-accent)_28%,transparent)] transition-all duration-300">
+    <div className="relative w-full h-44 md:h-48 flex items-center justify-center bg-[#030303] rounded-xl overflow-hidden border border-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] group-hover:border-[color-mix(in_srgb,var(--color-accent)_28%,transparent)] transition-all duration-300">
 
       {/* Ambient radial glow */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_60%,color-mix(in_srgb,var(--color-accent)_7%,transparent)_0%,transparent_70%)] pointer-events-none" />

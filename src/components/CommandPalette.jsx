@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { openResume } from '../lib/resume';
 
 /*
  * Command palette — Cmd/Ctrl+K (and a visible button on mobile).
@@ -38,6 +39,13 @@ const CommandPalette = () => {
     { id: 'stats', label: 'Go to Stats', hint: 'Section', icon: '§', run: () => scrollTo('#stats') },
     { id: 'projects', label: 'Go to Projects', hint: 'Section', icon: '§', run: () => scrollTo('#projects') },
     { id: 'contact', label: 'Go to Contact', hint: 'Section', icon: '§', run: () => scrollTo('#contact') },
+    {
+      id: 'resume-view',
+      label: 'View résumé',
+      hint: 'Action',
+      icon: '◉',
+      run: () => openResume(),
+    },
     {
       id: 'resume',
       label: 'Download résumé',

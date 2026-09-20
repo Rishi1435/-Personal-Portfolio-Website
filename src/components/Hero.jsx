@@ -1,10 +1,8 @@
 import RishiPicAvif from '../assets/images/rishi-portrait.avif';
 import RishiPicWebp from '../assets/images/rishi-portrait.webp';
-
-// Résumé is the single canonical copy served from /public.
-const RishiResume = '/Rishi_Pediredla_Resume.pdf';
 import { FaTerminal, FaMapMarkerAlt, FaEnvelope, FaChevronRight } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import { openResume } from '../lib/resume';
 
 const Hero = () => {
   return (
@@ -160,16 +158,17 @@ const Hero = () => {
                 <a href="#projects" className="w-full px-4 py-3 bg-gradient-to-r from-accent to-accent-glow text-primary-bg font-body font-bold text-xs tracking-[0.1em] uppercase hover:scale-[1.03] hover:shadow-[0_0_20px_color-mix(in_srgb,var(--color-accent)_40%,transparent)] transition-all duration-300 rounded text-center block">
                   View My Work
                 </a>
-                <a
-                  href={RishiResume}
-                  download="Rishi_Pediredla_Resume.pdf"
-                  className="w-full px-4 py-3 bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] border border-accent text-accent font-body font-bold text-xs tracking-[0.1em] uppercase hover:bg-accent hover:text-primary-bg hover:shadow-[0_0_20px_color-mix(in_srgb,var(--color-accent)_35%,transparent)] hover:scale-[1.03] transition-all duration-300 rounded text-center flex items-center justify-center gap-2"
+                <button
+                  type="button"
+                  onClick={openResume}
+                  className="w-full px-4 py-3 bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] border border-accent text-accent font-body font-bold text-xs tracking-[0.1em] uppercase hover:bg-accent hover:text-primary-bg hover:shadow-[0_0_20px_color-mix(in_srgb,var(--color-accent)_35%,transparent)] hover:scale-[1.03] transition-all duration-300 rounded text-center flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
                   View Résumé
-                </a>
+                </button>
                 <a href="mailto:pediredlarishi2005@gmail.com" className="w-full px-4 py-3 border border-[rgba(255,255,255,0.08)] text-text-secondary bg-transparent font-body font-bold text-xs tracking-[0.1em] uppercase hover:border-accent hover:text-accent hover:scale-[1.03] transition-all duration-300 rounded text-center block">
                   Get In Touch
                 </a>

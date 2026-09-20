@@ -1,4 +1,5 @@
-import { FaFileDownload, FaEnvelope } from 'react-icons/fa';
+import { FaRegEye, FaEnvelope } from 'react-icons/fa';
+import { openResume } from '../lib/resume';
 
 /*
  * Slim sticky action bar, mobile only. The Hero's persistent action card only
@@ -17,14 +18,14 @@ const MobileActionBar = () => {
       aria-label="Quick actions"
       className="md:hidden fixed bottom-0 inset-x-0 z-[9990] flex items-stretch gap-2 px-3 py-2.5 bg-[#050505]/90 backdrop-blur-xl border-t border-white/10"
     >
-      <a
-        href="/Rishi_Pediredla_Resume.pdf"
-        download="Rishi_Pediredla_Resume.pdf"
+      <button
+        type="button"
+        onClick={openResume}
         className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[var(--color-accent)] text-[var(--color-accent)] font-body text-xs font-bold uppercase tracking-wider active:scale-95 transition-transform"
       >
-        <FaFileDownload size={13} />
+        <FaRegEye size={14} />
         Résumé
-      </a>
+      </button>
       <a
         href="#contact"
         onClick={goContact}

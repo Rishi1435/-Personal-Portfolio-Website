@@ -12,12 +12,11 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
  *      browser after first use. Works in Firefox/Safari/iOS.
  *   3. A typed input is always visible as the last-resort fallback.
  *
- * TTS is two-tier, both free and on-device:
- *   1. DEFAULT — native SpeechSynthesis (the browser's own voice). Zero download,
- *      instant, and decent on modern Chrome/Edge/Mac; we rank the available voices
- *      and pick the most natural one (see pickBestVoice).
- *   2. OPT-IN — Kokoro HD (see below): higher quality, but a one-time ~80MB
- *      download and slower synthesis, so it's off by default behind a toggle.
+ * TTS is the browser's own SpeechSynthesis — zero download, instant, free. We
+ * rank the available voices and pick the most natural one (see pickBestVoice),
+ * and let the visitor pick a different voice from the ones their browser exposes.
+ * (Windows: Microsoft Edge exposes far better "Online (Natural)" neural voices
+ * than Chrome — the ranker auto-prefers them when present.)
  * The answer + optional section come from /api/ask (the model never runs client-side).
  */
 
@@ -30,27 +29,6 @@ const SECTION_TARGETS = {
 const TRANSFORMERS_CDN = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6';
 const WHISPER_MODEL = 'Xenova/whisper-tiny.en';
 
-// HD voice: Kokoro (the most natural open TTS right now), loaded from a CDN
-// (never bundled), q8 quantized (~80MB one-time, browser-cached). Opt-in only,
-// behind a toggle; when off, the free zero-download native voice is used.
-const KOKORO_VOICE = 'af_heart'; // top-graded natural American voice (model runs in a worker)
-
-// Whether it's polite to auto-download the ~80MB HD model in the background.
-// Skips data-saver, slow/metered connections, and clearly weak devices so we
-// never punish someone on mobile data or a low-end phone. The model is cached
-// after the first load, so this cost is one-time per visitor who clears it.
-const canPreload = () => {
-  if (typeof navigator === 'undefined') return false;
-  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  if (c) {
-    if (c.saveData) return false;
-    if (/^(slow-2g|2g|3g)$/.test(c.effectiveType || '')) return false;
-  }
-  if (typeof navigator.deviceMemory === 'number' && navigator.deviceMemory < 4) return false;
-  if (typeof navigator.hardwareConcurrency === 'number' && navigator.hardwareConcurrency < 4) return false;
-  return true;
-};
-
 // Rank the browser's available voices so we pick the most natural one instead of
 // whatever robotic default the OS hands out. Prefers neural/cloud voices
 // (Microsoft "…Online (Natural)" on Edge, "Google …" on Chrome, Apple premium)
@@ -60,19 +38,34 @@ const scoreVoice = (v) => {
   if (!lang.startsWith('en')) return -1;
   const n = (v.name || '').toLowerCase();
   let s = lang === 'en-us' ? 3 : lang === 'en-gb' ? 2 : 1;
-  if (/natural|online/.test(n)) s += 20;                 // MS neural (Edge)
-  if (/premium|enhanced|siri/.test(n)) s += 16;          // Apple premium
-  if (/\bgoogle\b/.test(n)) s += 12;                     // Chrome
-  if (/aria|jenny|guy|libby|emma|michelle|ava|zoe|samantha|serena|allison|nicky|sonia|ryan/.test(n)) s += 8;
-  if (v.localService === false) s += 4;                  // network voices are usually better
-  if (/david|zira|mark|hazel|susan|george/.test(n)) s -= 6; // legacy robotic SAPI
+  if (/natural|neural|online/.test(n)) s += 24;          // MS neural (Edge) — best available, big jump
+  if (/premium|enhanced|siri/.test(n)) s += 18;          // Apple premium
+  if (/wavenet|journey|studio|polyglot/.test(n)) s += 16; // Google Cloud-grade names
+  if (/\bgoogle\b/.test(n)) s += 12;                     // Chrome's network voice
+  if (/aria|jenny|guy|libby|emma|michelle|ava|zoe|samantha|serena|allison|nicky|sonia|ryan|eric|nova|andrew|brian/.test(n)) s += 8;
+  if (v.localService === false) s += 8;                  // network voices are markedly better — weight heavily
+  if (/david|zira|mark|hazel|susan|george|catherine/.test(n)) s -= 8; // legacy robotic SAPI
   return s;
 };
-const pickBestVoice = (voices) => {
-  const en = (voices || []).filter((v) => (v.lang || '').toLowerCase().startsWith('en'));
-  if (!en.length) return null;
-  return en.map((v) => [scoreVoice(v), v]).sort((a, b) => b[0] - a[0])[0][1];
+const englishVoices = (voices) =>
+  (voices || [])
+    .filter((v) => (v.lang || '').toLowerCase().startsWith('en'))
+    .map((v) => [scoreVoice(v), v])
+    .sort((a, b) => b[0] - a[0])
+    .map(([, v]) => v);
+const pickBestVoice = (voices) => englishVoices(voices)[0] || null;
+
+// Friendly accent label from the BCP-47 tag, for the picker.
+const ACCENT = {
+  'en-us': 'US', 'en-gb': 'UK', 'en-au': 'Australia', 'en-in': 'India',
+  'en-ca': 'Canada', 'en-ie': 'Ireland', 'en-za': 'South Africa', 'en-nz': 'New Zealand',
 };
+const accentLabel = (v) => ACCENT[(v.lang || '').toLowerCase().replace('_', '-')] || (v.lang || '').toUpperCase();
+// The higher-quality neural / network voices worth surfacing first.
+const isPremiumVoice = (v) =>
+  v.localService === false ||
+  /natural|neural|online|premium|enhanced|siri|wavenet|journey|studio|\bgoogle\b/.test((v.name || '').toLowerCase());
+const voiceLabel = (v) => `${v.name} · ${accentLabel(v)}${v.localService === false ? ' · online' : ''}`;
 
 const getNativeSR = () =>
   typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
@@ -105,12 +98,14 @@ const VoiceConcierge = ({ embedded = false } = {}) => {
   const [answer, setAnswer] = useState('');
   const [notice, setNotice] = useState('');
   const [typed, setTyped] = useState('');
-  const [hdVoice, setHdVoice] = useState(() => {
-    // Default is the fast native voice; HD (Kokoro) is opt-in only, so a visitor
-    // isn't hit with an 80MB download unless they explicitly ask for it.
-    return (typeof localStorage !== 'undefined' ? localStorage.getItem('hdVoice') : null) === '1';
-  });
-  const [ttsStatus, setTtsStatus] = useState('idle'); // idle | loading | ready
+  // Voices the browser exposes (for the picker) + the visitor's chosen one.
+  // Keyed by voice NAME, not voiceURI: some browsers report an empty or duplicate
+  // voiceURI, which collided with the "auto" option and made a pick silently fall
+  // back to the top-ranked (often male) voice.
+  const [voices, setVoices] = useState([]);
+  const [selectedVoiceName, setSelectedVoiceName] = useState(
+    () => (typeof localStorage !== 'undefined' ? localStorage.getItem('voiceName') : null) || ''
+  );
 
   const panelRef = useRef(null);
   const triggerRef = useRef(null);
@@ -120,23 +115,21 @@ const VoiceConcierge = ({ embedded = false } = {}) => {
   const streamRef = useRef(null);
   const transcriberRef = useRef(null);
   const lastHighlight = useRef(null);
-  const voicesRef = useRef([]);
   const bestVoiceRef = useRef(null);
-  const workerRef = useRef(null);
-  const readyRef = useRef(null);        // { promise, resolve, reject } for model load
-  const pendingRef = useRef(new Map()); // requestId -> { resolve, reject }
-  const reqIdRef = useRef(0);
-  const audioRef = useRef(null);
+  const selectedVoiceNameRef = useRef(selectedVoiceName);
   const speakTimerRef = useRef(null);
   const keepAliveRef = useRef(null);
-  const activeHdIdRef = useRef(0); // bumped to invalidate an in-flight HD turn
 
-  // Voices load asynchronously; cache them and keep the best pick fresh.
+  useEffect(() => { selectedVoiceNameRef.current = selectedVoiceName; }, [selectedVoiceName]);
+
+  // Voices load asynchronously; cache them, keep the best pick fresh, and expose
+  // the English ones (best-ranked first) for the picker.
   useEffect(() => {
     if (typeof speechSynthesis === 'undefined') return;
     const load = () => {
-      voicesRef.current = speechSynthesis.getVoices();
-      bestVoiceRef.current = pickBestVoice(voicesRef.current);
+      const all = speechSynthesis.getVoices();
+      bestVoiceRef.current = pickBestVoice(all);
+      setVoices(englishVoices(all));
     };
     load();
     speechSynthesis.addEventListener?.('voiceschanged', load);
@@ -149,157 +142,94 @@ const VoiceConcierge = ({ embedded = false } = {}) => {
     if (keepAliveRef.current) { clearInterval(keepAliveRef.current); keepAliveRef.current = null; }
   }, []);
 
-  // Stop the Kokoro audio element, detaching handlers so a paused clip can't fire
-  // onended/onerror and revive a turn we're abandoning.
-  const stopSpeakingAudio = useCallback(() => {
-    try { if (audioRef.current) { audioRef.current.onended = null; audioRef.current.onerror = null; audioRef.current.pause(); } } catch { /* noop */ }
-  }, []);
-
   const finishSpeaking = useCallback(() => {
     clearSpeakTimers();
     setPhase('idle');
   }, [clearSpeakTimers]);
 
-  // Guarantee we leave 'speaking' even if onend/onended never fires (a known
-  // Chrome SpeechSynthesis bug) or playback stalls.
+  // Guarantee we leave 'speaking' even if onend never fires (a known Chrome
+  // SpeechSynthesis bug) or playback stalls.
   const armWatchdog = useCallback((ms) => {
     clearSpeakTimers();
     speakTimerRef.current = setTimeout(() => {
-      activeHdIdRef.current++; // invalidate any in-flight HD/Google turn so late chunks can't revive it
       try { speechSynthesis?.cancel(); } catch { /* noop */ }
-      stopSpeakingAudio();
       setPhase('idle');
       speakTimerRef.current = null;
     }, ms);
-  }, [clearSpeakTimers, stopSpeakingAudio]);
+  }, [clearSpeakTimers]);
 
-  const speakNative = useCallback((text) => {
+  // Resolve the voice to use: the visitor's pick (by name) if still available,
+  // else the best-ranked one the browser offers.
+  const resolveVoice = useCallback(() => {
+    const all = (typeof speechSynthesis !== 'undefined' ? speechSynthesis.getVoices() : []) || [];
+    const name = selectedVoiceNameRef.current;
+    if (name) {
+      const chosen = all.find((v) => v.name === name);
+      if (chosen) return chosen;
+    }
+    return bestVoiceRef.current || pickBestVoice(all);
+  }, []);
+
+  const speak = useCallback((text) => {
     if (typeof speechSynthesis === 'undefined') { setPhase('idle'); return; }
     try {
       speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      // Voices may not have been ready at mount — re-pick if needed.
-      const voice = bestVoiceRef.current || pickBestVoice(speechSynthesis.getVoices());
-      if (voice) u.voice = voice;
-      u.lang = voice?.lang || 'en-US';
-      u.rate = 1; u.pitch = 1; u.volume = 1;
-      u.onend = finishSpeaking;
-      u.onerror = finishSpeaking;
+      const voice = resolveVoice();
+      const lang = voice?.lang || 'en-US';
+      // Network voices (Chrome's "Google …") fetch each utterance from a server and
+      // silently fall back to the default voice if a request fails or is throttled
+      // — so splitting into many small requests made a picked voice "revert." Speak
+      // network voices as ONE request; only split LOCAL voices per sentence (free,
+      // and it gives them more natural phrasing than one long monotone).
+      const isNetworkVoice = voice?.localService === false;
+      const parts = isNetworkVoice
+        ? [text.trim()]
+        : (text.match(/[^.!?]+[.!?]+|\S[^.!?]*$/g) || [text]).map((s) => s.trim()).filter(Boolean);
+      if (!parts.length) { setPhase('idle'); return; }
       setPhase('speaking');
       // Chrome pauses long synthesis after ~15s; nudge it to keep going.
       keepAliveRef.current = setInterval(() => {
         try { if (speechSynthesis.speaking) speechSynthesis.resume(); } catch { /* noop */ }
       }, 5000);
-      // Watchdog sized to the text (~90ms/char) with a hard 30s cap.
-      armWatchdog(Math.min(30000, Math.max(6000, text.length * 90 + 4000)));
-      speechSynthesis.speak(u);
+      // Watchdog sized to the text (~95ms/char) with a hard 45s cap.
+      armWatchdog(Math.min(45000, Math.max(6000, text.length * 95 + 4000)));
+      // Chrome can drop the chosen voice when speak() fires in the same tick as
+      // cancel() — it reuses the previous utterance's voice. A short defer makes
+      // the newly selected voice reliably take effect every turn.
+      setTimeout(() => {
+        parts.forEach((part, i) => {
+          const u = new SpeechSynthesisUtterance(part);
+          if (voice) u.voice = voice;
+          u.lang = lang;
+          // Slightly under 1.0 reads more measured and less clipped than the default.
+          u.rate = 0.97; u.pitch = 1; u.volume = 1;
+          // Only the final sentence ends the turn; the watchdog covers any stall.
+          if (i === parts.length - 1) { u.onend = finishSpeaking; u.onerror = finishSpeaking; }
+          speechSynthesis.speak(u);
+        });
+      }, 60);
     } catch { finishSpeaking(); }
-  }, [finishSpeaking, armWatchdog]);
+  }, [resolveVoice, finishSpeaking, armWatchdog]);
 
-  // Kokoro runs in a Web Worker so model load + inference never block the main
-  // thread (that was the "Page Unresponsive" freeze).
-  const ensureWorker = useCallback(() => {
-    if (workerRef.current) return workerRef.current;
-    const w = new Worker(new URL('../workers/kokoroWorker.js', import.meta.url), { type: 'module' });
-    w.onmessage = (e) => {
-      const { type, id, buffer, mime, message } = e.data || {};
-      if (type === 'ready') { setTtsStatus('ready'); readyRef.current?.resolve?.(); return; }
-      if (type === 'audio') { pendingRef.current.get(id)?.resolve({ buffer, mime }); pendingRef.current.delete(id); return; }
-      if (type === 'error') {
-        const err = new Error(message || 'tts worker error');
-        if (id != null && pendingRef.current.has(id)) { pendingRef.current.get(id).reject(err); pendingRef.current.delete(id); }
-        else { readyRef.current?.reject?.(err); readyRef.current = null; }
-      }
-    };
-    w.onerror = () => {
-      const err = new Error('tts worker crashed');
-      readyRef.current?.reject?.(err); readyRef.current = null;
-      pendingRef.current.forEach((p) => p.reject(err)); pendingRef.current.clear();
-    };
-    workerRef.current = w;
-    return w;
-  }, []);
-
-  const loadKokoro = useCallback(() => {
-    const w = ensureWorker();
-    if (readyRef.current?.promise) return readyRef.current.promise;
-    setTtsStatus('loading');
-    let resolve, reject;
-    const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
-    readyRef.current = { promise, resolve, reject };
-    w.postMessage({ type: 'load' });
-    return promise;
-  }, [ensureWorker]);
-
-  // Synthesize the whole answer in one call (no gaps, natural prosody). Resolves
-  // with the audio buffer; a 60s guard covers a stall.
-  const generateHD = useCallback((text) => {
-    const w = ensureWorker();
-    const id = ++reqIdRef.current;
-    return new Promise((resolve, reject) => {
-      const to = setTimeout(() => { if (pendingRef.current.delete(id)) reject(new Error('tts timeout')); }, 60000);
-      pendingRef.current.set(id, {
-        resolve: (v) => { clearTimeout(to); resolve(v); },
-        reject: (e) => { clearTimeout(to); reject(e); },
-      });
-      w.postMessage({ type: 'generate', id, text, voice: KOKORO_VOICE });
-    });
-  }, [ensureWorker]);
-
-  const speakHD = useCallback(async (text) => {
-    const myId = ++activeHdIdRef.current; // this turn's token
-    const current = () => activeHdIdRef.current === myId;
-    setPhase('speaking');
-    // Generous watchdog to cover a slow first-time model download; retightened once audio plays.
-    armWatchdog(120000);
+  // Preview the chosen voice (by name) with a short line so picking is immediate
+  // feedback.
+  const previewVoice = useCallback((name) => {
+    if (typeof speechSynthesis === 'undefined') return;
     try {
-      await loadKokoro();
-      if (!current()) return; // a newer turn took over during load
-      const { buffer, mime } = await generateHD(text);
-      if (!current()) return; // superseded while generating
-      const url = URL.createObjectURL(new Blob([buffer], { type: mime || 'audio/wav' }));
-      if (!audioRef.current) audioRef.current = new Audio();
-      const el = audioRef.current;
-      el.src = url;
-      const done = () => { try { URL.revokeObjectURL(url); } catch { /* noop */ } finishSpeaking(); };
-      el.onended = done;
-      el.onerror = done;
-      await el.play();
-      // Playback started — tighten the watchdog to the clip length.
-      const dur = Number.isFinite(el.duration) ? el.duration * 1000 : text.length * 90 + 4000;
-      armWatchdog(Math.min(60000, dur + 4000));
-    } catch {
-      if (!current()) return;
-      setTtsStatus('idle');
-      speakNative(text); // any failure → free native voice
-    }
-  }, [loadKokoro, generateHD, speakNative, finishSpeaking, armWatchdog]);
-
-  const speak = useCallback((text) => {
-    if (hdVoice) speakHD(text);
-    else speakNative(text);
-  }, [hdVoice, speakHD, speakNative]);
-
-  // Preload the HD model in the background as soon as the page is idle, so it's
-  // ready to speak the moment a visitor asks — instead of a 30-50s wait on first
-  // use. Only when HD is the active voice AND the device/connection can afford
-  // it (canPreload). Deferred to idle time so it never competes with page load.
-  useEffect(() => {
-    if (!hdVoice || !canPreload() || readyRef.current?.promise) return;
-    let cancelled = false;
-    const kick = () => {
-      if (cancelled) return;
-      loadKokoro().catch(() => { /* falls back to native at speak time */ });
-    };
-    const ric = typeof requestIdleCallback === 'function'
-      ? requestIdleCallback(kick, { timeout: 3000 })
-      : setTimeout(kick, 1200);
-    return () => {
-      cancelled = true;
-      if (typeof cancelIdleCallback === 'function' && typeof ric === 'number') cancelIdleCallback(ric);
-      else clearTimeout(ric);
-    };
-  }, [hdVoice, loadKokoro]);
+      speechSynthesis.cancel();
+      clearSpeakTimers();
+      setPhase('idle');
+      const all = speechSynthesis.getVoices();
+      const v = (name && all.find((x) => x.name === name)) || bestVoiceRef.current || pickBestVoice(all);
+      const u = new SpeechSynthesisUtterance("Hi, I'm Rishi's assistant. Ask me anything.");
+      if (v) u.voice = v;
+      u.lang = v?.lang || 'en-US';
+      u.rate = 0.97;
+      // Chrome occasionally drops the voice on a speak() fired in the same tick as
+      // cancel(); a next-tick call makes the selected voice reliably take effect.
+      setTimeout(() => { try { speechSynthesis.speak(u); } catch { /* noop */ } }, 60);
+    } catch { /* noop */ }
+  }, [clearSpeakTimers]);
 
   const highlightSection = useCallback((section) => {
     const sel = SECTION_TARGETS[section];
@@ -307,8 +237,7 @@ const VoiceConcierge = ({ embedded = false } = {}) => {
     if (!el) return;
     el.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
     if (lastHighlight.current) lastHighlight.current.classList.remove('section-highlight');
-    // restart the animation
-    void el.offsetWidth;
+    void el.offsetWidth; // restart the animation
     el.classList.add('section-highlight');
     lastHighlight.current = el;
     setTimeout(() => el.classList.remove('section-highlight'), 2000);
@@ -318,10 +247,8 @@ const VoiceConcierge = ({ embedded = false } = {}) => {
     const text = (q || '').trim();
     if (!text) return;
     // Interrupt any prior speech/watchdog before a new turn.
-    activeHdIdRef.current++; // stop any in-flight HD/Google chunks from the previous turn
     clearSpeakTimers();
     try { speechSynthesis?.cancel(); } catch { /* noop */ }
-    stopSpeakingAudio();
     setQuestion(text);
     setAnswer('');
     setNotice('');
@@ -355,18 +282,17 @@ const VoiceConcierge = ({ embedded = false } = {}) => {
     } finally {
       clearTimeout(timer);
     }
-  }, [highlightSection, speak, clearSpeakTimers, stopSpeakingAudio]);
+  }, [highlightSection, speak, clearSpeakTimers]);
 
   // ── Native SpeechRecognition ──────────────────────────────
   const stopEverything = useCallback(() => {
-    activeHdIdRef.current++; // invalidate any in-flight HD/Google turn
     try { recognitionRef.current?.stop(); } catch { /* noop */ }
     try { mediaRef.current?.state === 'recording' && mediaRef.current.stop(); } catch { /* noop */ }
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
-    stopSpeakingAudio();
+    try { speechSynthesis?.cancel(); } catch { /* noop */ }
     clearSpeakTimers();
-  }, [clearSpeakTimers, stopSpeakingAudio]);
+  }, [clearSpeakTimers]);
 
   const startNative = useCallback(() => {
     const SR = getNativeSR();
@@ -444,7 +370,7 @@ const VoiceConcierge = ({ embedded = false } = {}) => {
   }, [ask, loadTranscriber]);
 
   const toggleListening = useCallback(() => {
-    if (phase === 'speaking') { activeHdIdRef.current++; try { speechSynthesis.cancel(); } catch { /* noop */ } stopSpeakingAudio(); clearSpeakTimers(); setPhase('idle'); return; }
+    if (phase === 'speaking') { try { speechSynthesis.cancel(); } catch { /* noop */ } clearSpeakTimers(); setPhase('idle'); return; }
     if (phase === 'listening') {
       if (engine === 'native') { try { recognitionRef.current?.stop(); } catch { /* noop */ } }
       else { try { mediaRef.current?.stop(); } catch { /* noop */ } }
@@ -453,7 +379,7 @@ const VoiceConcierge = ({ embedded = false } = {}) => {
     if (phase === 'thinking') return;
     if (engine === 'native') startNative();
     else startWasm();
-  }, [phase, engine, startNative, startWasm, clearSpeakTimers, stopSpeakingAudio]);
+  }, [phase, engine, startNative, startWasm, clearSpeakTimers]);
 
   const submitTyped = (e) => {
     e.preventDefault();
@@ -462,17 +388,15 @@ const VoiceConcierge = ({ embedded = false } = {}) => {
     setTyped('');
   };
 
-  const toggleHd = (on) => {
-    setHdVoice(on);
-    try { localStorage.setItem('hdVoice', on ? '1' : '0'); } catch { /* private mode */ }
-    setNotice('');
-    // Start the one-time model download immediately for feedback.
-    if (on && !readyRef.current?.promise) loadKokoro().catch(() => { setTtsStatus('idle'); setNotice('HD voice failed to load — using the standard voice.'); });
+  const onPickVoice = (name) => {
+    setSelectedVoiceName(name);
+    selectedVoiceNameRef.current = name; // apply immediately, before the state commit
+    try { localStorage.setItem('voiceName', name); } catch { /* private mode */ }
+    previewVoice(name);
   };
 
   const closePanel = useCallback(() => {
     stopEverything();
-    try { speechSynthesis?.cancel(); } catch { /* noop */ }
     setPhase('idle');
     setOpen(false);
   }, [stopEverything]);
@@ -486,19 +410,12 @@ const VoiceConcierge = ({ embedded = false } = {}) => {
     return () => document.removeEventListener('keydown', onKey);
   }, [open, embedded, closePanel]);
 
-  // Stop any live audio/mic when the panel is not open (no state writes here).
+  // Stop any live audio/mic when the panel is not open.
   useEffect(() => {
-    if (!open) {
-      stopEverything();
-      try { speechSynthesis?.cancel(); } catch { /* noop */ }
-    }
+    if (!open) stopEverything();
   }, [open, stopEverything]);
 
-  useEffect(() => () => {
-    stopEverything();
-    try { speechSynthesis?.cancel(); } catch { /* noop */ }
-    try { workerRef.current?.terminate(); } catch { /* noop */ }
-  }, [stopEverything]);
+  useEffect(() => () => { stopEverything(); }, [stopEverything]);
 
   const phaseLabel = {
     idle: 'Tap the mic and ask about Rishi',
@@ -629,27 +546,42 @@ const VoiceConcierge = ({ embedded = false } = {}) => {
               </button>
             </form>
 
-            {/* HD voice — opt-in neural TTS (one-time ~80MB download, cached) */}
-            <div className="flex items-center justify-between gap-2">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={hdVoice}
-                  onChange={(e) => toggleHd(e.target.checked)}
-                  className="accent-[var(--color-accent)] w-3.5 h-3.5"
-                />
-                <span className="font-mono text-[10px] text-white/60">
-                  HD voice{' '}
-                  <span className="text-white/30">
-                    {ttsStatus === 'loading'
-                      ? '· downloading model…'
-                      : ttsStatus === 'ready'
-                        ? '· ready'
-                        : '· on-device, richer · ~80MB once'}
-                  </span>
-                </span>
-              </label>
-            </div>
+            {/* Voice picker — every voice the browser offers, best (neural/online)
+                grouped on top, each previewed on select. */}
+            {voices.length > 1 && (
+              <div>
+                <div className="flex items-center gap-2">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/40 flex-shrink-0" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" />
+                  </svg>
+                  <select
+                    value={selectedVoiceName}
+                    onChange={(e) => onPickVoice(e.target.value)}
+                    aria-label="Choose the assistant voice"
+                    className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-white/70 focus:outline-none focus:border-[var(--color-accent)] cursor-pointer"
+                  >
+                    <option value="">Best available (auto)</option>
+                    {voices.some(isPremiumVoice) && (
+                      <optgroup label="★ Recommended — neural / online">
+                        {voices.filter(isPremiumVoice).map((v) => (
+                          <option key={`${v.name}::${v.lang}`} value={v.name}>{voiceLabel(v)}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {voices.some((v) => !isPremiumVoice(v)) && (
+                      <optgroup label="Standard — offline">
+                        {voices.filter((v) => !isPremiumVoice(v)).map((v) => (
+                          <option key={`${v.name}::${v.lang}`} value={v.name}>{voiceLabel(v)}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                </div>
+                <p className="font-mono text-[9px] text-white/25 mt-1.5 pl-[21px]">
+                  {voices.length} voices available{voices.some(isPremiumVoice) ? '' : ' · open in Microsoft Edge for premium neural voices'}
+                </p>
+              </div>
+            )}
 
             <p className="font-mono text-[9px] text-white/25 text-center">
               Turn-based Q&amp;A · answers only about Rishi &amp; his work
