@@ -24,10 +24,27 @@ const SECTION_TARGETS = {
 const TRANSFORMERS_CDN = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6';
 const WHISPER_MODEL = 'Xenova/whisper-tiny.en';
 
-// Optional HD voice: Kokoro (the most natural open TTS right now), loaded on
-// demand from a CDN (never bundled), q8 quantized (~80MB one-time, browser-cached).
-// Opt-in only — default TTS stays the free, zero-download native voice.
+// HD voice: Kokoro (the most natural open TTS right now), loaded from a CDN
+// (never bundled), q8 quantized (~80MB one-time, browser-cached). Default ON for
+// capable devices and preloaded in the background (see canPreload); weak/metered
+// devices fall back to the free, zero-download native voice.
 const KOKORO_VOICE = 'af_heart'; // top-graded natural American voice (model runs in a worker)
+
+// Whether it's polite to auto-download the ~80MB HD model in the background.
+// Skips data-saver, slow/metered connections, and clearly weak devices so we
+// never punish someone on mobile data or a low-end phone. The model is cached
+// after the first load, so this cost is one-time per visitor who clears it.
+const canPreload = () => {
+  if (typeof navigator === 'undefined') return false;
+  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (c) {
+    if (c.saveData) return false;
+    if (/^(slow-2g|2g|3g)$/.test(c.effectiveType || '')) return false;
+  }
+  if (typeof navigator.deviceMemory === 'number' && navigator.deviceMemory < 4) return false;
+  if (typeof navigator.hardwareConcurrency === 'number' && navigator.hardwareConcurrency < 4) return false;
+  return true;
+};
 
 // Rank the browser's available voices so we pick the most natural one instead of
 // whatever robotic default the OS hands out. Prefers neural/cloud voices
@@ -81,10 +98,16 @@ const VoiceConcierge = () => {
   const [answer, setAnswer] = useState('');
   const [notice, setNotice] = useState('');
   const [typed, setTyped] = useState('');
-  const [hdVoice, setHdVoice] = useState(
-    () => typeof localStorage !== 'undefined' && localStorage.getItem('hdVoice') === '1'
-  );
+  const [hdVoice, setHdVoice] = useState(() => {
+    // An explicit prior choice wins; otherwise default HD on for capable
+    // devices (the model preloads in the background so it's ready to speak).
+    const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('hdVoice') : null;
+    if (saved === '1') return true;
+    if (saved === '0') return false;
+    return canPreload();
+  });
   const [ttsStatus, setTtsStatus] = useState('idle'); // idle | loading | ready
+  const [ttsBackend, setTtsBackend] = useState(null); // 'webgpu' | 'wasm' once loaded
 
   const panelRef = useRef(null);
   const triggerRef = useRef(null);
@@ -101,9 +124,9 @@ const VoiceConcierge = () => {
   const pendingRef = useRef(new Map()); // requestId -> { resolve, reject }
   const reqIdRef = useRef(0);
   const audioRef = useRef(null);
-  const audioUrlRef = useRef(null);
   const speakTimerRef = useRef(null);
   const keepAliveRef = useRef(null);
+  const activeHdIdRef = useRef(0); // bumped to invalidate an in-flight HD turn
 
   // Voices load asynchronously; cache them and keep the best pick fresh.
   useEffect(() => {
@@ -133,6 +156,7 @@ const VoiceConcierge = () => {
   const armWatchdog = useCallback((ms) => {
     clearSpeakTimers();
     speakTimerRef.current = setTimeout(() => {
+      activeHdIdRef.current++; // invalidate any in-flight HD turn so late chunks can't revive it
       try { speechSynthesis?.cancel(); } catch { /* noop */ }
       try { audioRef.current?.pause(); } catch { /* noop */ }
       setPhase('idle');
@@ -169,9 +193,16 @@ const VoiceConcierge = () => {
     if (workerRef.current) return workerRef.current;
     const w = new Worker(new URL('../workers/kokoroWorker.js', import.meta.url), { type: 'module' });
     w.onmessage = (e) => {
-      const { type, id, buffer, mime, message } = e.data || {};
-      if (type === 'ready') { setTtsStatus('ready'); readyRef.current?.resolve?.(); return; }
-      if (type === 'audio') { pendingRef.current.get(id)?.resolve({ buffer, mime }); pendingRef.current.delete(id); return; }
+      const { type, id, index, buffer, mime, backend, message } = e.data || {};
+      if (type === 'ready') {
+        if (backend) setTtsBackend(backend);
+        setTtsStatus('ready');
+        readyRef.current?.resolve?.(backend);
+        return;
+      }
+      // Streamed audio: hand each sentence to the request's onChunk as it lands.
+      if (type === 'chunk') { pendingRef.current.get(id)?.onChunk?.({ index, buffer, mime }); return; }
+      if (type === 'done') { pendingRef.current.get(id)?.resolve?.(); pendingRef.current.delete(id); return; }
       if (type === 'error') {
         const err = new Error(message || 'tts worker error');
         if (id != null && pendingRef.current.has(id)) { pendingRef.current.get(id).reject(err); pendingRef.current.delete(id); }
@@ -198,13 +229,18 @@ const VoiceConcierge = () => {
     return promise;
   }, [ensureWorker]);
 
-  const generateHD = useCallback((text) => {
+  // Streaming: the worker synthesizes sentence-by-sentence and calls onChunk for
+  // each; the returned promise resolves on 'done'. A 60s guard covers a stall.
+  const generateHD = useCallback((text, onChunk) => {
     const w = ensureWorker();
     const id = ++reqIdRef.current;
     return new Promise((resolve, reject) => {
-      const to = setTimeout(() => { if (pendingRef.current.delete(id)) reject(new Error('tts timeout')); }, 60000);
+      let to;
+      const arm = () => { clearTimeout(to); to = setTimeout(() => { if (pendingRef.current.delete(id)) reject(new Error('tts timeout')); }, 60000); };
+      arm();
       pendingRef.current.set(id, {
-        resolve: (v) => { clearTimeout(to); resolve(v); },
+        onChunk: (c) => { arm(); onChunk(c); }, // reset the stall timer on progress
+        resolve: () => { clearTimeout(to); resolve(); },
         reject: (e) => { clearTimeout(to); reject(e); },
       });
       w.postMessage({ type: 'generate', id, text, voice: KOKORO_VOICE });
@@ -212,28 +248,57 @@ const VoiceConcierge = () => {
   }, [ensureWorker]);
 
   const speakHD = useCallback(async (text) => {
+    const myId = ++activeHdIdRef.current; // this turn's token
+    const current = () => activeHdIdRef.current === myId;
     setPhase('speaking');
-    // Generous watchdog to cover a slow first-time model download; cleared on end.
+    // Generous watchdog to cover a slow first-time model download; retightened once audio flows.
     armWatchdog(120000);
+
+    if (!audioRef.current) audioRef.current = new Audio();
+    const el = audioRef.current;
+    const queue = [];          // pending object URLs, in sentence order
+    const urls = [];           // everything we created, for cleanup
+    let playing = false;
+    let genDone = false;
+
+    const cleanup = () => { urls.forEach((u) => { try { URL.revokeObjectURL(u); } catch { /* noop */ } }); };
+
+    const playNext = () => {
+      if (!current()) return;                 // superseded by a newer turn
+      if (playing) return;
+      if (!queue.length) {
+        if (genDone) { cleanup(); finishSpeaking(); } // all sentences played
+        return;
+      }
+      playing = true;
+      const url = queue.shift();
+      el.src = url;
+      let advanced = false;
+      const advance = () => { if (advanced) return; advanced = true; playing = false; playNext(); };
+      el.onended = advance;
+      el.onerror = advance;
+      // Keep the watchdog ahead of the current clip in case onended never fires.
+      armWatchdog(60000);
+      el.play().catch(advance); // autoplay/decoding failure → skip to next
+    };
+
     try {
       await loadKokoro();
-      const { buffer, mime } = await generateHD(text);
-      const url = URL.createObjectURL(new Blob([buffer], { type: mime || 'audio/wav' }));
-      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
-      audioUrlRef.current = url;
-      if (!audioRef.current) audioRef.current = new Audio();
-      const el = audioRef.current;
-      el.src = url;
-      el.onended = finishSpeaking;
-      el.onerror = finishSpeaking;
-      await el.play();
-      // Now that playback started, tighten the watchdog to the clip length.
-      const dur = Number.isFinite(el.duration) ? el.duration * 1000 : text.length * 90 + 4000;
-      armWatchdog(Math.min(60000, dur + 4000));
+      if (!current()) { cleanup(); return; } // a newer turn took over during load
+      await generateHD(text, ({ buffer, mime }) => {
+        if (!current()) return;
+        const url = URL.createObjectURL(new Blob([buffer], { type: mime || 'audio/wav' }));
+        urls.push(url);
+        queue.push(url);
+        playNext();
+      });
+      genDone = true;
+      playNext(); // handles the empty-answer / already-drained cases
     } catch {
-      // Any failure (worker/model/inference/autoplay) → free native voice fallback.
+      if (!current()) return;
+      cleanup();
       setTtsStatus('idle');
-      speakNative(text);
+      speakNative(text); // any failure → free native voice
     }
   }, [loadKokoro, generateHD, speakNative, finishSpeaking, armWatchdog]);
 
@@ -241,6 +306,27 @@ const VoiceConcierge = () => {
     if (hdVoice) speakHD(text);
     else speakNative(text);
   }, [hdVoice, speakHD, speakNative]);
+
+  // Preload the HD model in the background as soon as the page is idle, so it's
+  // ready to speak the moment a visitor asks — instead of a 30-50s wait on first
+  // use. Only when HD is the active voice AND the device/connection can afford
+  // it (canPreload). Deferred to idle time so it never competes with page load.
+  useEffect(() => {
+    if (!hdVoice || !canPreload() || readyRef.current?.promise) return;
+    let cancelled = false;
+    const kick = () => {
+      if (cancelled) return;
+      loadKokoro().catch(() => { /* falls back to native at speak time */ });
+    };
+    const ric = typeof requestIdleCallback === 'function'
+      ? requestIdleCallback(kick, { timeout: 3000 })
+      : setTimeout(kick, 1200);
+    return () => {
+      cancelled = true;
+      if (typeof cancelIdleCallback === 'function' && typeof ric === 'number') cancelIdleCallback(ric);
+      else clearTimeout(ric);
+    };
+  }, [hdVoice, loadKokoro]);
 
   const highlightSection = useCallback((section) => {
     const sel = SECTION_TARGETS[section];
@@ -259,6 +345,7 @@ const VoiceConcierge = () => {
     const text = (q || '').trim();
     if (!text) return;
     // Interrupt any prior speech/watchdog before a new turn.
+    activeHdIdRef.current++; // stop any in-flight HD chunks from the previous turn
     clearSpeakTimers();
     try { speechSynthesis?.cancel(); } catch { /* noop */ }
     try { audioRef.current?.pause(); } catch { /* noop */ }
@@ -299,6 +386,7 @@ const VoiceConcierge = () => {
 
   // ── Native SpeechRecognition ──────────────────────────────
   const stopEverything = useCallback(() => {
+    activeHdIdRef.current++; // invalidate any in-flight HD turn
     try { recognitionRef.current?.stop(); } catch { /* noop */ }
     try { mediaRef.current?.state === 'recording' && mediaRef.current.stop(); } catch { /* noop */ }
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -572,7 +660,11 @@ const VoiceConcierge = () => {
                 <span className="font-mono text-[10px] text-white/60">
                   HD voice{' '}
                   <span className="text-white/30">
-                    {ttsStatus === 'loading' ? '· downloading…' : ttsStatus === 'ready' ? '· ready' : '· ~80MB once'}
+                    {ttsStatus === 'loading'
+                      ? '· downloading model…'
+                      : ttsStatus === 'ready'
+                        ? (ttsBackend === 'webgpu' ? '· ready (GPU)' : '· ready (CPU)')
+                        : '· natural, slower · downloads once'}
                   </span>
                 </span>
               </label>
