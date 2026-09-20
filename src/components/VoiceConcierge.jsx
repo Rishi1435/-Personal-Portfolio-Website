@@ -107,7 +107,6 @@ const VoiceConcierge = () => {
     return canPreload();
   });
   const [ttsStatus, setTtsStatus] = useState('idle'); // idle | loading | ready
-  const [ttsBackend, setTtsBackend] = useState(null); // 'webgpu' | 'wasm' once loaded
 
   const panelRef = useRef(null);
   const triggerRef = useRef(null);
@@ -193,16 +192,9 @@ const VoiceConcierge = () => {
     if (workerRef.current) return workerRef.current;
     const w = new Worker(new URL('../workers/kokoroWorker.js', import.meta.url), { type: 'module' });
     w.onmessage = (e) => {
-      const { type, id, index, buffer, mime, backend, message } = e.data || {};
-      if (type === 'ready') {
-        if (backend) setTtsBackend(backend);
-        setTtsStatus('ready');
-        readyRef.current?.resolve?.(backend);
-        return;
-      }
-      // Streamed audio: hand each sentence to the request's onChunk as it lands.
-      if (type === 'chunk') { pendingRef.current.get(id)?.onChunk?.({ index, buffer, mime }); return; }
-      if (type === 'done') { pendingRef.current.get(id)?.resolve?.(); pendingRef.current.delete(id); return; }
+      const { type, id, buffer, mime, message } = e.data || {};
+      if (type === 'ready') { setTtsStatus('ready'); readyRef.current?.resolve?.(); return; }
+      if (type === 'audio') { pendingRef.current.get(id)?.resolve({ buffer, mime }); pendingRef.current.delete(id); return; }
       if (type === 'error') {
         const err = new Error(message || 'tts worker error');
         if (id != null && pendingRef.current.has(id)) { pendingRef.current.get(id).reject(err); pendingRef.current.delete(id); }
@@ -229,18 +221,15 @@ const VoiceConcierge = () => {
     return promise;
   }, [ensureWorker]);
 
-  // Streaming: the worker synthesizes sentence-by-sentence and calls onChunk for
-  // each; the returned promise resolves on 'done'. A 60s guard covers a stall.
-  const generateHD = useCallback((text, onChunk) => {
+  // Synthesize the whole answer in one call (no gaps, natural prosody). Resolves
+  // with the audio buffer; a 60s guard covers a stall.
+  const generateHD = useCallback((text) => {
     const w = ensureWorker();
     const id = ++reqIdRef.current;
     return new Promise((resolve, reject) => {
-      let to;
-      const arm = () => { clearTimeout(to); to = setTimeout(() => { if (pendingRef.current.delete(id)) reject(new Error('tts timeout')); }, 60000); };
-      arm();
+      const to = setTimeout(() => { if (pendingRef.current.delete(id)) reject(new Error('tts timeout')); }, 60000);
       pendingRef.current.set(id, {
-        onChunk: (c) => { arm(); onChunk(c); }, // reset the stall timer on progress
-        resolve: () => { clearTimeout(to); resolve(); },
+        resolve: (v) => { clearTimeout(to); resolve(v); },
         reject: (e) => { clearTimeout(to); reject(e); },
       });
       w.postMessage({ type: 'generate', id, text, voice: KOKORO_VOICE });
@@ -251,52 +240,26 @@ const VoiceConcierge = () => {
     const myId = ++activeHdIdRef.current; // this turn's token
     const current = () => activeHdIdRef.current === myId;
     setPhase('speaking');
-    // Generous watchdog to cover a slow first-time model download; retightened once audio flows.
+    // Generous watchdog to cover a slow first-time model download; retightened once audio plays.
     armWatchdog(120000);
-
-    if (!audioRef.current) audioRef.current = new Audio();
-    const el = audioRef.current;
-    const queue = [];          // pending object URLs, in sentence order
-    const urls = [];           // everything we created, for cleanup
-    let playing = false;
-    let genDone = false;
-
-    const cleanup = () => { urls.forEach((u) => { try { URL.revokeObjectURL(u); } catch { /* noop */ } }); };
-
-    const playNext = () => {
-      if (!current()) return;                 // superseded by a newer turn
-      if (playing) return;
-      if (!queue.length) {
-        if (genDone) { cleanup(); finishSpeaking(); } // all sentences played
-        return;
-      }
-      playing = true;
-      const url = queue.shift();
-      el.src = url;
-      let advanced = false;
-      const advance = () => { if (advanced) return; advanced = true; playing = false; playNext(); };
-      el.onended = advance;
-      el.onerror = advance;
-      // Keep the watchdog ahead of the current clip in case onended never fires.
-      armWatchdog(60000);
-      el.play().catch(advance); // autoplay/decoding failure → skip to next
-    };
-
     try {
       await loadKokoro();
-      if (!current()) { cleanup(); return; } // a newer turn took over during load
-      await generateHD(text, ({ buffer, mime }) => {
-        if (!current()) return;
-        const url = URL.createObjectURL(new Blob([buffer], { type: mime || 'audio/wav' }));
-        urls.push(url);
-        queue.push(url);
-        playNext();
-      });
-      genDone = true;
-      playNext(); // handles the empty-answer / already-drained cases
+      if (!current()) return; // a newer turn took over during load
+      const { buffer, mime } = await generateHD(text);
+      if (!current()) return; // superseded while generating
+      const url = URL.createObjectURL(new Blob([buffer], { type: mime || 'audio/wav' }));
+      if (!audioRef.current) audioRef.current = new Audio();
+      const el = audioRef.current;
+      el.src = url;
+      const done = () => { try { URL.revokeObjectURL(url); } catch { /* noop */ } finishSpeaking(); };
+      el.onended = done;
+      el.onerror = done;
+      await el.play();
+      // Playback started — tighten the watchdog to the clip length.
+      const dur = Number.isFinite(el.duration) ? el.duration * 1000 : text.length * 90 + 4000;
+      armWatchdog(Math.min(60000, dur + 4000));
     } catch {
       if (!current()) return;
-      cleanup();
       setTtsStatus('idle');
       speakNative(text); // any failure → free native voice
     }
@@ -663,7 +626,7 @@ const VoiceConcierge = () => {
                     {ttsStatus === 'loading'
                       ? '· downloading model…'
                       : ttsStatus === 'ready'
-                        ? (ttsBackend === 'webgpu' ? '· ready (GPU)' : '· ready (CPU)')
+                        ? '· ready'
                         : '· natural, slower · downloads once'}
                   </span>
                 </span>
