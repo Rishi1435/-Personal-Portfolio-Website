@@ -7,7 +7,7 @@ Everything here runs on free tiers with **no server cost, no paid TTS/STT/API**:
 | Static site + `/api/ask` | **Vercel Hobby** (free): static build + serverless function in one deploy |
 | LLM | NVIDIA NIM **trial** key (free), called only from the server function |
 | STT | Browser `SpeechRecognition` (free) → WASM Whisper from a CDN (free, on-device) → typed input |
-| TTS | Browser `SpeechSynthesis` (free, on-device) |
+| TTS | Default: Google Translate TTS via the `/api/tts` proxy (free, no key), hard-cached at the edge. Fallback: browser `SpeechSynthesis` (free, on-device). Opt-in: Kokoro HD (free, on-device WASM) |
 | Rate limiting | In-memory by default (free); optional free Upstash tier |
 
 ## Use Vercel, not Render (for the free tier)
@@ -44,5 +44,14 @@ the `/api/ask` Node function.) So: **Vercel Hobby**.
 - The Whisper STT model (~tens of MB) downloads from a CDN **only** on browsers
   without native `SpeechRecognition` (Firefox/Safari), and is cached after first
   use. It never touches your server.
+- **TTS proxy (`/api/tts`).** The default voice fetches audio from Google's
+  unofficial translate_tts endpoint server-side (a browser can't call it directly —
+  Chrome's ORB blocks it) and caches each phrase at the edge (`s-maxage` 1y), so a
+  repeated phrase is served from Vercel's CDN without re-invoking the function or
+  re-hitting Google. If Google ever throttles or the endpoint changes, the client
+  silently falls back to the browser's native voice — no visitor hears silence. No
+  API key, no cost. A per-IP limit (400 audio chunks/hr) is abuse protection;
+  cache hits don't count against it. Custom domain later? Add it to
+  `ALLOWED_REFERER_HOSTS` in `api/tts.js`.
 - Update `og:url` / `canonical` in `index.html` if your final domain differs from
   `rishipediredla.vercel.app`.

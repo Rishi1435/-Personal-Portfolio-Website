@@ -11,8 +11,17 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
  *      from a CDN so it never enters our bundle; the model is cached by the
  *      browser after first use. Works in Firefox/Safari/iOS.
  *   3. A typed input is always visible as the last-resort fallback.
- * TTS uses the native SpeechSynthesis API. The answer + optional section come
- * from /api/ask (the model never runs client-side).
+ *
+ * TTS is tiered too, all free:
+ *   1. DEFAULT — Google Translate's TTS endpoint, played straight from an <audio>
+ *      element in the *visitor's own browser* (no key, no server proxy). It sends
+ *      Cross-Origin-Resource-Policy: cross-origin, so it plays even on this
+ *      cross-origin-isolated page. Fetching from each visitor's IP (not a shared
+ *      server IP) is what keeps us clear of rate limits. ~0.3s to first audio.
+ *   2. FALLBACK — native SpeechSynthesis, if a Google chunk ever errors/throttles.
+ *   3. OPT-IN — Kokoro HD (see below): fully on-device, higher quality, but a
+ *      one-time ~80MB download and slower synthesis. Off by default now.
+ * The answer + optional section come from /api/ask (the model never runs client-side).
  */
 
 const SECTION_TARGETS = {
@@ -29,6 +38,47 @@ const WHISPER_MODEL = 'Xenova/whisper-tiny.en';
 // capable devices and preloaded in the background (see canPreload); weak/metered
 // devices fall back to the free, zero-download native voice.
 const KOKORO_VOICE = 'af_heart'; // top-graded natural American voice (model runs in a worker)
+
+// Default voice: Google Translate TTS via our same-origin /api/tts proxy. Chrome's
+// ORB blocks loading Google directly into <audio> cross-origin, so the proxy
+// fetches server-side and streams the MP3 back same-origin (plays fine, including
+// on this isolated page). The proxy caches each phrase at the edge, so repeats
+// never re-hit Google. The `q` text is capped at ~200 chars per request, so we
+// split the answer into <=180-char chunks on natural boundaries and play them
+// back-to-back. Identical text → identical URL → CDN cache hit.
+const GOOGLE_CHUNK_MAX = 180; // stay safely under Google's ~200-char q limit
+const GOOGLE_MAX_CHUNKS = 12; // hard cap so a runaway answer can't fan out requests
+
+const ttsProxyUrl = (text) => `/api/tts?q=${encodeURIComponent(text)}`;
+
+// Split into <=GOOGLE_CHUNK_MAX pieces, breaking only after sentence/clause
+// punctuation followed by whitespace (so "gmail.com" or "U.S." never splits), and
+// on word boundaries as a fallback. Never cuts mid-word.
+const chunkForTts = (raw) => {
+  const text = (raw || '').replace(/\s+/g, ' ').trim();
+  if (!text) return [];
+  if (text.length <= GOOGLE_CHUNK_MAX) return [text];
+  // Prefer sentence/clause ends: . ! ? , ; : — only when followed by a space.
+  const parts = text.split(/(?<=[.!?,;:])\s+/);
+  const chunks = [];
+  let cur = '';
+  const pushWords = (segment) => {
+    // A single part longer than the cap → split on spaces without breaking words.
+    for (const word of segment.split(' ')) {
+      if (!cur) cur = word;
+      else if ((cur + ' ' + word).length <= GOOGLE_CHUNK_MAX) cur += ' ' + word;
+      else { chunks.push(cur); cur = word; }
+    }
+  };
+  for (const part of parts) {
+    if (part.length > GOOGLE_CHUNK_MAX) { if (cur) { chunks.push(cur); cur = ''; } pushWords(part); continue; }
+    if (!cur) cur = part;
+    else if ((cur + ' ' + part).length <= GOOGLE_CHUNK_MAX) cur += ' ' + part;
+    else { chunks.push(cur); cur = part; }
+  }
+  if (cur) chunks.push(cur);
+  return chunks.slice(0, GOOGLE_MAX_CHUNKS);
+};
 
 // Whether it's polite to auto-download the ~80MB HD model in the background.
 // Skips data-saver, slow/metered connections, and clearly weak devices so we
@@ -99,12 +149,9 @@ const VoiceConcierge = () => {
   const [notice, setNotice] = useState('');
   const [typed, setTyped] = useState('');
   const [hdVoice, setHdVoice] = useState(() => {
-    // An explicit prior choice wins; otherwise default HD on for capable
-    // devices (the model preloads in the background so it's ready to speak).
-    const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('hdVoice') : null;
-    if (saved === '1') return true;
-    if (saved === '0') return false;
-    return canPreload();
+    // Default is the fast Google voice; HD (Kokoro) is opt-in only, so a visitor
+    // isn't hit with an 80MB download unless they explicitly ask for it.
+    return (typeof localStorage !== 'undefined' ? localStorage.getItem('hdVoice') : null) === '1';
   });
   const [ttsStatus, setTtsStatus] = useState('idle'); // idle | loading | ready
 
@@ -123,6 +170,7 @@ const VoiceConcierge = () => {
   const pendingRef = useRef(new Map()); // requestId -> { resolve, reject }
   const reqIdRef = useRef(0);
   const audioRef = useRef(null);
+  const googleAudiosRef = useRef([]); // queued <audio> chunks for the Google voice
   const speakTimerRef = useRef(null);
   const keepAliveRef = useRef(null);
   const activeHdIdRef = useRef(0); // bumped to invalidate an in-flight HD turn
@@ -145,6 +193,17 @@ const VoiceConcierge = () => {
     if (keepAliveRef.current) { clearInterval(keepAliveRef.current); keepAliveRef.current = null; }
   }, []);
 
+  // Stop whatever is currently producing audio (Kokoro element + every queued
+  // Google chunk), detaching handlers so a paused clip can't fire onended/onerror
+  // and revive a turn we're abandoning.
+  const stopSpeakingAudio = useCallback(() => {
+    try { if (audioRef.current) { audioRef.current.onended = null; audioRef.current.onerror = null; audioRef.current.pause(); } } catch { /* noop */ }
+    for (const a of googleAudiosRef.current) {
+      try { a.onended = null; a.onerror = null; a.pause(); a.removeAttribute('src'); } catch { /* noop */ }
+    }
+    googleAudiosRef.current = [];
+  }, []);
+
   const finishSpeaking = useCallback(() => {
     clearSpeakTimers();
     setPhase('idle');
@@ -155,13 +214,13 @@ const VoiceConcierge = () => {
   const armWatchdog = useCallback((ms) => {
     clearSpeakTimers();
     speakTimerRef.current = setTimeout(() => {
-      activeHdIdRef.current++; // invalidate any in-flight HD turn so late chunks can't revive it
+      activeHdIdRef.current++; // invalidate any in-flight HD/Google turn so late chunks can't revive it
       try { speechSynthesis?.cancel(); } catch { /* noop */ }
-      try { audioRef.current?.pause(); } catch { /* noop */ }
+      stopSpeakingAudio();
       setPhase('idle');
       speakTimerRef.current = null;
     }, ms);
-  }, [clearSpeakTimers]);
+  }, [clearSpeakTimers, stopSpeakingAudio]);
 
   const speakNative = useCallback((text) => {
     if (typeof speechSynthesis === 'undefined') { setPhase('idle'); return; }
@@ -265,10 +324,56 @@ const VoiceConcierge = () => {
     }
   }, [loadKokoro, generateHD, speakNative, finishSpeaking, armWatchdog]);
 
+  // Default voice: Google Translate TTS, played from the visitor's own browser.
+  // Chunks are preloaded in parallel then played back-to-back; any failure hands
+  // the *rest* of the answer to the native voice so playback never dies mid-turn.
+  const speakGoogle = useCallback((text) => {
+    const myId = ++activeHdIdRef.current; // this turn's token
+    const current = () => activeHdIdRef.current === myId;
+    stopSpeakingAudio();
+
+    const chunks = chunkForTts(text);
+    if (!chunks.length) { setPhase('idle'); return; }
+
+    setPhase('speaking');
+    // Watchdog: Google speech runs ~180ms/char; cap generously, retighten on play.
+    armWatchdog(Math.min(60000, Math.max(8000, text.length * 220 + 4000)));
+
+    // Preload every chunk in parallel via the same-origin proxy. Repeated phrases
+    // are served from the edge cache (no Google hit); a failed/429 chunk falls
+    // back to the native voice below, so a visitor never hears silence.
+    const els = chunks.map((c) => {
+      const a = new Audio();
+      a.preload = 'auto';
+      a.src = ttsProxyUrl(c);
+      return a;
+    });
+    googleAudiosRef.current = els;
+
+    // Fall back to the native voice for the remaining (unspoken) text.
+    const fallbackFrom = (i) => {
+      if (!current()) return;
+      stopSpeakingAudio();
+      speakNative(chunks.slice(i).join(' '));
+    };
+
+    const playFrom = (i) => {
+      if (!current()) return;
+      if (i >= els.length) { finishSpeaking(); return; }
+      const el = els[i];
+      el.onended = () => { if (current()) playFrom(i + 1); };
+      el.onerror = () => fallbackFrom(i); // this chunk (and the rest) → native voice
+      el.play().then(() => {
+        if (i === 0) armWatchdog(Math.min(60000, Math.max(8000, text.length * 220 + 6000)));
+      }).catch(() => fallbackFrom(i));
+    };
+    playFrom(0);
+  }, [stopSpeakingAudio, armWatchdog, speakNative, finishSpeaking]);
+
   const speak = useCallback((text) => {
     if (hdVoice) speakHD(text);
-    else speakNative(text);
-  }, [hdVoice, speakHD, speakNative]);
+    else speakGoogle(text);
+  }, [hdVoice, speakHD, speakGoogle]);
 
   // Preload the HD model in the background as soon as the page is idle, so it's
   // ready to speak the moment a visitor asks — instead of a 30-50s wait on first
@@ -308,10 +413,10 @@ const VoiceConcierge = () => {
     const text = (q || '').trim();
     if (!text) return;
     // Interrupt any prior speech/watchdog before a new turn.
-    activeHdIdRef.current++; // stop any in-flight HD chunks from the previous turn
+    activeHdIdRef.current++; // stop any in-flight HD/Google chunks from the previous turn
     clearSpeakTimers();
     try { speechSynthesis?.cancel(); } catch { /* noop */ }
-    try { audioRef.current?.pause(); } catch { /* noop */ }
+    stopSpeakingAudio();
     setQuestion(text);
     setAnswer('');
     setNotice('');
@@ -345,18 +450,18 @@ const VoiceConcierge = () => {
     } finally {
       clearTimeout(timer);
     }
-  }, [highlightSection, speak, clearSpeakTimers]);
+  }, [highlightSection, speak, clearSpeakTimers, stopSpeakingAudio]);
 
   // ── Native SpeechRecognition ──────────────────────────────
   const stopEverything = useCallback(() => {
-    activeHdIdRef.current++; // invalidate any in-flight HD turn
+    activeHdIdRef.current++; // invalidate any in-flight HD/Google turn
     try { recognitionRef.current?.stop(); } catch { /* noop */ }
     try { mediaRef.current?.state === 'recording' && mediaRef.current.stop(); } catch { /* noop */ }
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
-    try { audioRef.current?.pause(); } catch { /* noop */ }
+    stopSpeakingAudio();
     clearSpeakTimers();
-  }, [clearSpeakTimers]);
+  }, [clearSpeakTimers, stopSpeakingAudio]);
 
   const startNative = useCallback(() => {
     const SR = getNativeSR();
@@ -434,7 +539,7 @@ const VoiceConcierge = () => {
   }, [ask, loadTranscriber]);
 
   const toggleListening = useCallback(() => {
-    if (phase === 'speaking') { try { speechSynthesis.cancel(); } catch { /* noop */ } try { audioRef.current?.pause(); } catch { /* noop */ } clearSpeakTimers(); setPhase('idle'); return; }
+    if (phase === 'speaking') { activeHdIdRef.current++; try { speechSynthesis.cancel(); } catch { /* noop */ } stopSpeakingAudio(); clearSpeakTimers(); setPhase('idle'); return; }
     if (phase === 'listening') {
       if (engine === 'native') { try { recognitionRef.current?.stop(); } catch { /* noop */ } }
       else { try { mediaRef.current?.stop(); } catch { /* noop */ } }
@@ -443,7 +548,7 @@ const VoiceConcierge = () => {
     if (phase === 'thinking') return;
     if (engine === 'native') startNative();
     else startWasm();
-  }, [phase, engine, startNative, startWasm, clearSpeakTimers]);
+  }, [phase, engine, startNative, startWasm, clearSpeakTimers, stopSpeakingAudio]);
 
   const submitTyped = (e) => {
     e.preventDefault();
@@ -627,7 +732,7 @@ const VoiceConcierge = () => {
                       ? '· downloading model…'
                       : ttsStatus === 'ready'
                         ? '· ready'
-                        : '· natural, slower · downloads once'}
+                        : '· on-device, richer · ~80MB once'}
                   </span>
                 </span>
               </label>
