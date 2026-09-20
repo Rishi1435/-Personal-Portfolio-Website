@@ -20,12 +20,22 @@ function loadDotEnv() {
 }
 loadDotEnv()
 
-// Serve /api/ask locally (npm run dev / preview) by adapting the Vercel-style
-// handler to a connect middleware. On Vercel the real function is used instead.
+// Serve the /api/* serverless handlers locally (npm run dev / preview) by
+// adapting the Vercel-style handlers to connect middleware. On Vercel the real
+// functions are used instead. Add a route here whenever a new api/<name>.js
+// endpoint is created so it works in local dev too.
+const LOCAL_API_ROUTES = {
+  '/api/ask': () => import('./api/ask.js'),
+  '/api/github': () => import('./api/github.js'),
+  '/api/leetcode': () => import('./api/leetcode.js'),
+}
+
 function localApi() {
   const mount = (server) => {
     server.middlewares.use(async (req, res, next) => {
-      if ((req.url || '').split('?')[0] !== '/api/ask') return next()
+      const pathname = (req.url || '').split('?')[0]
+      const load = LOCAL_API_ROUTES[pathname]
+      if (!load) return next()
       res.status = (c) => { res.statusCode = c; return res }
       res.json = (o) => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(o)); return res }
       if (req.method === 'POST') {
@@ -37,7 +47,7 @@ function localApi() {
         })
       }
       try {
-        const { default: handler } = await import('./api/ask.js')
+        const { default: handler } = await load()
         await handler(req, res)
       } catch (e) {
         res.statusCode = 500
@@ -47,7 +57,7 @@ function localApi() {
     })
   }
   return {
-    name: 'local-api-ask',
+    name: 'local-api',
     configureServer: mount,
     configurePreviewServer: mount,
   }
@@ -60,4 +70,9 @@ export default defineConfig({
     tailwindcss(),
     localApi(),
   ],
+  // Honour a PORT env var when one is provided (e.g. the preview tooling), and
+  // pin to it so the port is predictable; otherwise fall back to Vite's default.
+  server: process.env.PORT
+    ? { port: Number(process.env.PORT), strictPort: true }
+    : undefined,
 })

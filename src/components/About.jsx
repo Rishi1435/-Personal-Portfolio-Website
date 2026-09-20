@@ -109,7 +109,7 @@ const About = () => {
   return (
     <section
       id="about"
-      className="relative overflow-hidden py-28"
+      className="relative overflow-hidden py-20 md:py-24"
     >
       <div className="container max-w-[1280px] mx-auto px-6 md:px-12 relative z-10">
 
@@ -184,17 +184,6 @@ const About = () => {
               </div>
             </ScrollReveal>
 
-            {/* Achievements */}
-            <div className="flex flex-col gap-3">
-              <ScrollReveal>
-                <div className="flex items-center gap-3 mb-1">
-                  <span className="font-body text-xs text-white/40 font-semibold tracking-widest uppercase">// ACHIEVEMENTS</span>
-                  <div className="flex-1 h-px bg-gradient-to-r from-white/[0.06] to-transparent" />
-                </div>
-              </ScrollReveal>
-              {achievements.map((a, i) => <AchievementBadge key={i} {...a} />)}
-            </div>
-
           </div>
 
           {/* ── RIGHT (3 cols) — Terminal: KEEPS green border (intentional hero) ── */}
@@ -265,6 +254,17 @@ const About = () => {
                     {t}
                   </span>
                 ))}
+              </div>
+
+              {/* Achievements — moved here to fill the space below the terminal */}
+              <div className="mt-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="font-body text-xs text-white/40 font-semibold tracking-widest uppercase">// ACHIEVEMENTS</span>
+                  <div className="flex-1 h-px bg-gradient-to-r from-white/[0.06] to-transparent" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {achievements.map((a, i) => <AchievementBadge key={i} {...a} />)}
+                </div>
               </div>
 
             </div>

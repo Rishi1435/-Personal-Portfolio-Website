@@ -230,7 +230,7 @@ const Skills = () => {
       animate={sectionInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.6, ease: 'easeOut' }}
       id="skills" 
-      className="relative overflow-hidden py-28"
+      className="relative overflow-hidden py-20 md:py-24"
     >
       <div className="container max-w-[1280px] mx-auto px-6 md:px-12 relative z-10">
 

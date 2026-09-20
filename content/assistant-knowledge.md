@@ -55,21 +55,26 @@ collaborations.
 
 ## Flagship project: Qlue (section: qlue)
 
-**Qlue** is an AI-powered voice interview simulation app (v2). It's a voice-based
-mock-interview platform that acts as a realistic AI interviewer: it reads your
-résumé, asks personalized questions, scores spoken answers in real time, and
-sends a detailed feedback report.
+**Qlue** is an AI-powered voice interview simulation app (v2) — a voice-first,
+AI-native mock-interview platform (iOS, Android, web) that acts as a realistic AI
+interviewer: it reads your résumé, asks résumé-tailored questions, scores spoken
+answers in real time, and sends a detailed feedback report.
 
 - **Modes (4):** résumé-based technical, HR behavioural, self-introduction
   coaching, and URL/website-based tutoring.
-- **Stack:** Flutter, Dart, Node.js, AWS Lambda, AWS SAM, Amazon Bedrock
-  (Nemotron for scoring + Claude for interview flow), Amazon Polly (TTS),
-  Textract, DynamoDB, S3, Firebase Auth, API Gateway, WebSocket, FCM.
-- **Voice pipeline:** Flutter client → API Gateway WebSocket → server-side VAD
-  (energy-threshold end-of-turn detection) → STT → Bedrock → Amazon Polly → back
-  to the client. Round trip under ~2 seconds.
+- **Stack:** Flutter, Dart, Provider (frontend); Node.js on AWS SAM / Lambda
+  (backend); Amazon Bedrock — **Nemotron-super-3-120b** generates questions and
+  scores answers, **Claude 3 Haiku** writes the feedback report; Amazon Polly
+  (neural TTS), Textract (résumé parsing), DynamoDB (8 tables), S3, SNS, API
+  Gateway (REST + WebSocket), Firebase Auth, FCM.
+- **Voice pipeline (per turn):** Flutter client with on-device STT → API Gateway
+  WebSocket → async Lambda worker (saves transcript, rolling 20-turn context) →
+  Bedrock (Nemotron-super scores + generates) → Amazon Polly → presigned S3 audio
+  pushed back over the socket. Round trip under ~2 seconds. After the session, an
+  SNS-triggered pipeline has Claude 3 Haiku write the qualitative feedback report,
+  delivered by FCM push.
 - **Metrics:** 649 students reached, 4 interview modes, <2s AI response time,
-  5 Polly voices, Top 5 at Project Space.
+  5 Polly voices (Tiffany, Ruth, Joanna, Matthew, Stephen), Top 5 at Project Space.
 - Repo: https://github.com/Rishi1435/Qlue-v2
 
 ## Featured project: Xpensia (section: xpensia)
@@ -144,9 +149,10 @@ A: Yes — he's open to internships, full-time roles, and collaborations. The
 fastest way to reach him is pediredlarishi2005@gmail.com.
 
 **Q: What AI/LLM work has he done?**
-A: Qlue integrates Amazon Bedrock (Nemotron + Claude) for scoring and interview
-flow, he built an LLM Prompt Router with intent classification, and he earned 4
-Anthropic certifications.
+A: Qlue integrates Amazon Bedrock — Nemotron-super generates interview questions
+and scores answers in real time, and Claude 3 Haiku writes the post-session
+feedback report. He also built an LLM Prompt Router with intent classification,
+and earned 4 Anthropic certifications.
 
 **Q: What backend/distributed systems has he built?**
 A: Event-driven CQRS with Kafka, a Redis-backed distributed shopping cart, a

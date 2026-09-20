@@ -1,39 +1,18 @@
-import { useState, useRef, useEffect, lazy, Suspense } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import ProjectQlue from './ProjectQlue';
 import ProjectXpensia from './ProjectXpensia';
 import ProjectMedia from './ProjectMedia';
 import ScrollReveal from './ScrollReveal';
-
-// Heavy, below-the-fold interactive demo — code-split out of the initial bundle.
-const QlueArchitecture = lazy(() => import('./QlueArchitecture'));
+import { qlue } from '../data/qlue';
 import { useReducedMotion } from '../hooks/useReducedMotion';
-import { FaGithub, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaGithub, FaExternalLinkAlt, FaPlay, FaStar, FaCodeBranch } from 'react-icons/fa';
 
 /* ─── Featured Project Data ────────────────────────────────── */
+// Qlue is the single source of truth in src/data/qlue.js (shared with /qlue-live).
 const projects = [
-  {
-    id: 'qlue',
-    index: '01',
-    title: 'Qlue',
-    subtitle: 'AI-Powered Voice Interview Simulation App — v2',
-    description:
-      'A voice-based, AI-powered mock interview platform built with Flutter, Firebase, AWS (Lambda, S3, DynamoDB, Bedrock), Node.js, and Docker. It acts as a realistic AI interviewer that reads your resume, asks personalized questions, scores spoken answers in real time, and sends a detailed feedback report. Secured a Top 5 ranking out of all submissions at Project Space. Supports 4 modes: Resume-based technical, HR behavioural, Self-introduction coaching, and URL/Website-based tutoring.',
-    modes: ['Resume Technical', 'HR Behavioural', 'Self-Introduction', 'URL Tutoring'],
-    tech: ['Flutter', 'Dart', 'Node.js', 'AWS Lambda', 'AWS SAM', 'Bedrock (Nemotron + Claude)', 'Amazon Polly', 'Textract', 'DynamoDB', 'S3', 'Firebase Auth', 'API Gateway', 'WebSocket', 'FCM'],
-    github: 'https://github.com/Rishi1435/Qlue-v2',
-    metrics: [
-      { value: '649', label: 'Students Reached', note: 'Unique students who ran a Qlue session during the Project Space showcase.' },
-      { value: '4', label: 'Interview Modes', note: 'Resume-technical, HR-behavioural, self-introduction, and URL/website tutoring.' },
-      { value: '<2s', label: 'AI Response Time', note: 'End-of-turn to first audio byte, measured client-side across test sessions.' },
-      { value: '5', label: 'Polly AI Voices', note: 'Selectable Amazon Polly neural voices for the interviewer.' },
-      { value: 'Top 5', label: 'Project Space Rank', note: 'Placed top 5 of 160+ projects judged at Project Space.' },
-    ],
-    Visual: ProjectQlue,
-    status: 'SOURCE',
-    featured: true,
-  },
+  qlue,
   {
     id: 'xpensia',
     index: '02',
@@ -196,6 +175,16 @@ const categorizedProjects = [
   }
 ];
 
+/* Repo slugs already featured on this page (Qlue, Xpensia + the categorized
+   grid) — excluded from the live GitHub grid so nothing is shown twice. Derived
+   from the same data the cards render from, so it stays in sync automatically. */
+const PORTFOLIO_REPO_SLUGS = [
+  ...projects.map((p) => p.github),
+  ...categorizedProjects.flatMap((c) => c.projects.map((p) => p.github)),
+]
+  .filter(Boolean)
+  .map((url) => url.split('/').pop().toLowerCase());
+
 /* ─── Sub-Component: Tech Badge (de-greened — green only on hover) ── */
 const TechBadge = ({ label, i }) => (
   <motion.span
@@ -311,7 +300,7 @@ const MagneticButton = ({ href, children, className = '', featured = false }) =>
 
 /* ─── Featured Project Card (Qlue — dominant, full-width) ───────────── */
 const FeaturedProjectCard = ({ project }) => {
-  const { index, title, subtitle, description, tech, github, metrics, Visual, status, video, poster } = project;
+  const { index, title, subtitle, description, tech, github, metrics, Visual, status, video, poster, demo } = project;
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
 
   return (
@@ -394,16 +383,29 @@ const FeaturedProjectCard = ({ project }) => {
               {tech.map((t, i) => <TechBadge key={t} label={t} i={i} />)}
             </div>
 
-            {/* GitHub CTA: Magnetic */}
-            <MagneticButton
-              href={github}
-              featured={true}
-              className="inline-flex items-center gap-3 px-8 py-4 bg-transparent font-body font-bold text-xs tracking-wider uppercase rounded-xl hover:!bg-[var(--color-accent)] hover:!text-white cursor-hover"
-            >
-              <FaGithub size={18} />
-              View on GitHub
-              <FaExternalLinkAlt size={11} className="opacity-70" />
-            </MagneticButton>
+            {/* CTAs — Live Demonstration (in-app route) + GitHub */}
+            <div className="flex flex-wrap items-center gap-3">
+              {demo && (
+                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                  <Link
+                    to={demo}
+                    className="inline-flex items-center gap-3 px-8 py-4 rounded-xl font-body font-bold text-xs tracking-wider uppercase bg-[var(--color-accent)] text-black hover:bg-[var(--color-accent-glow)] shadow-[0_0_30px_color-mix(in_srgb,var(--color-accent)_35%,transparent)] transition-colors duration-300 cursor-hover"
+                  >
+                    <FaPlay size={13} />
+                    Live Demonstration
+                  </Link>
+                </motion.div>
+              )}
+              <MagneticButton
+                href={github}
+                featured={true}
+                className="inline-flex items-center gap-3 px-8 py-4 bg-transparent font-body font-bold text-xs tracking-wider uppercase rounded-xl hover:!bg-[var(--color-accent)] hover:!text-white cursor-hover"
+              >
+                <FaGithub size={18} />
+                View on GitHub
+                <FaExternalLinkAlt size={11} className="opacity-70" />
+              </MagneticButton>
+            </div>
           </div>
 
         </div>
@@ -582,6 +584,98 @@ const CategorizedProjectCard = ({ project, cardIndex }) => {
   );
 };
 
+/* ─── Live GitHub repo card (auto-selected "best" projects) ────────
+   Data comes from /api/github → topRepos: forks/archived/portfolio filtered,
+   ranked by stars then most-recent push, refreshed hourly at the edge. No manual
+   curation — new strong work appears here on its own. */
+const LANG_COLOR = {
+  JavaScript: '#f1e05a', TypeScript: '#3178c6', Dart: '#00B4AB', Python: '#3572A5',
+  Java: '#b07219', HTML: '#e34c26', CSS: '#563d7c', Shell: '#89e051', C: '#555555',
+  'C++': '#f34b7d', Go: '#00ADD8', Ruby: '#701516', Kotlin: '#A97BFF',
+};
+const repoRelativeTime = (iso) => {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const day = 86400000;
+  if (diff < day) return 'today';
+  if (diff < 2 * day) return 'yesterday';
+  if (diff < 30 * day) return `${Math.round(diff / day)}d ago`;
+  if (diff < 365 * day) return `${Math.round(diff / (30 * day))}mo ago`;
+  return `${Math.round(diff / (365 * day))}y ago`;
+};
+const prettyRepoName = (name) =>
+  name.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+const LiveRepoCard = ({ repo, i }) => {
+  const link = repo.homepage || repo.html_url;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.97 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.4, delay: (i % 3) * 0.08, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ scale: 1.02, y: -6, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } }}
+      className="glass-card p-6 md:p-7 flex flex-col justify-between h-full group"
+    >
+      <div className="relative z-10 mb-6 flex-1 flex flex-col">
+        <div className="flex items-center justify-between mb-3.5">
+          <span className="inline-flex items-center gap-1.5 font-body text-[10px] tracking-wider text-[var(--color-accent-glow)] font-bold uppercase px-3 py-1 bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent-glow)] animate-pulse" />
+            LIVE
+          </span>
+          <span className="font-mono text-[10px] text-white/40 whitespace-nowrap">updated {repoRelativeTime(repo.pushed_at)}</span>
+        </div>
+
+        <h4 className="font-display font-bold text-lg md:text-xl text-white group-hover:text-[var(--color-accent-glow)] transition-colors duration-300 leading-snug">
+          {prettyRepoName(repo.name)}
+        </h4>
+
+        <p className="font-body text-[#a0a0b8] text-xs md:text-sm leading-relaxed mt-3 line-clamp-3">
+          {repo.description || 'No description provided.'}
+        </p>
+
+        {/* Language + stars/forks */}
+        <div className="flex items-center gap-4 mt-4 font-mono text-[11px] text-white/50">
+          {repo.language && (
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: LANG_COLOR[repo.language] || '#8b949e' }} />
+              {repo.language}
+            </span>
+          )}
+          {repo.stars > 0 && <span className="flex items-center gap-1"><FaStar size={10} /> {repo.stars}</span>}
+          {repo.forks > 0 && <span className="flex items-center gap-1"><FaCodeBranch size={10} /> {repo.forks}</span>}
+        </div>
+      </div>
+
+      <div className="relative z-10 pt-5 border-t border-white/[0.06] mt-auto flex flex-col gap-4">
+        {repo.topics?.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {repo.topics.map((t) => (
+              <span
+                key={t}
+                className="px-2.5 py-0.5 text-[10px] font-body font-semibold uppercase tracking-wide bg-white/[0.04] border border-white/[0.06] text-white/50 rounded-full"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <MagneticButton
+          href={link}
+          className="inline-flex items-center justify-between gap-2 py-2.5 px-4 bg-transparent hover:!bg-[var(--color-accent)] hover:!text-white rounded-xl font-body text-xs font-bold tracking-wider uppercase w-full group/btn cursor-hover"
+        >
+          <span className="flex items-center gap-2">
+            <FaGithub size={14} />
+            {repo.homepage ? 'View Live / Code' : 'View on GitHub'}
+          </span>
+          <FaExternalLinkAlt size={10} className="opacity-60 group-hover/btn:opacity-100 transition-all" />
+        </MagneticButton>
+      </div>
+    </motion.div>
+  );
+};
+
 /* ─── Tab ⇄ URL slug mapping (shareable, back-button friendly) ─── */
 const CATEGORY_TABS = [
   { key: 'ALL', slug: 'all', label: 'ALL PROJECTS', count: '12' },
@@ -601,6 +695,21 @@ const Projects = () => {
   const [sectionRef, sectionInView] = useInView({ triggerOnce: true, threshold: 0.05 });
   const [activeTab, setActiveTab] = useState(readStackFromUrl);
   const tabRefs = useRef([]);
+
+  // Best repos, pulled live from GitHub (edge-cached ~hourly) once in view.
+  const [liveRepos, setLiveRepos] = useState(null);
+  const [liveErr, setLiveErr] = useState(false);
+  useEffect(() => {
+    if (!sectionInView) return;
+    let alive = true;
+    const controller = new AbortController();
+    fetch(`/api/github?exclude=${encodeURIComponent(PORTFOLIO_REPO_SLUGS.join(','))}`, { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => { if (alive) setLiveRepos(Array.isArray(d.topRepos) ? d.topRepos : []); })
+      .catch(() => { if (alive) setLiveErr(true); });
+    return () => { alive = false; controller.abort(); };
+  }, [sectionInView]);
+  const showLive = !liveErr && (liveRepos === null || liveRepos.length > 0);
 
   const allCategorizedList = categorizedProjects.flatMap(cat =>
     cat.projects.map(p => ({ ...p, categoryName: cat.category }))
@@ -651,7 +760,7 @@ const Projects = () => {
       animate={sectionInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.6, ease: 'easeOut' }}
       id="projects" 
-      className="relative overflow-hidden py-28"
+      className="relative overflow-hidden py-20 md:py-24"
     >
       <div className="container max-w-[1280px] mx-auto px-6 md:px-12 relative z-10">
 
@@ -659,7 +768,7 @@ const Projects = () => {
         <ScrollReveal>
           <div className="mb-16">
             <span className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-widest uppercase block mb-3">
-              // 04 · FEATURED WORK
+              // 05 · FEATURED WORK
             </span>
             <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-8">
               <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-display font-black leading-none tracking-tight section-title">
@@ -680,15 +789,6 @@ const Projects = () => {
               : <ProjectCard key={project.id} project={project} reverse={i % 2 !== 0} />
           ))}
         </div>
-
-        {/* ── Interactive Qlue architecture diagram ── */}
-        <ScrollReveal delay={0.1}>
-          <div className="mb-24">
-            <Suspense fallback={<div className="min-h-[280px] rounded-2xl border border-white/[0.06] bg-white/[0.02]" />}>
-              <QlueArchitecture />
-            </Suspense>
-          </div>
-        </ScrollReveal>
 
         {/* ── Tab Bar Header & Categorized Grid ────── */}
         <div className="pt-12 border-t border-white/[0.06]">
@@ -776,6 +876,35 @@ const Projects = () => {
           </div>
 
         </div>
+
+        {/* ── Live from GitHub: best repos, auto-selected & refreshed ── */}
+        {showLive && (
+          <div className="pt-16 mt-16 border-t border-white/[0.06]">
+            <ScrollReveal>
+              <div className="flex flex-col items-center text-center mb-10">
+                <span className="inline-flex items-center gap-2 font-body text-xs text-[var(--color-accent)] font-semibold tracking-widest uppercase mb-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent-glow)] animate-pulse" />
+                  // LIVE FROM GITHUB
+                </span>
+                <h3 className="font-display font-bold text-xl sm:text-2xl text-white tracking-tight">
+                  Latest, Straight from My GitHub
+                </h3>
+                <p className="font-body text-[#a0a0b8] text-xs sm:text-sm mt-1 max-w-lg">
+                  Auto-selected top repositories, refreshed hourly — this grid updates itself as I ship new work.
+                </p>
+                <div className="w-40 h-1 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-glow)] rounded-full mt-5 mx-auto shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent)_60%,transparent)]" />
+              </div>
+            </ScrollReveal>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+              {liveRepos === null
+                ? Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="glass-card h-56 animate-pulse bg-white/[0.02]" />
+                  ))
+                : liveRepos.map((repo, i) => <LiveRepoCard key={repo.name} repo={repo} i={i} />)}
+            </div>
+          </div>
+        )}
 
         {/* ── Footer CTA ─────────────────────────────────────── */}
         <ScrollReveal delay={0.2}>

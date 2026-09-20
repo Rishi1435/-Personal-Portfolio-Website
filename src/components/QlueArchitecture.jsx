@@ -9,62 +9,62 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
  * reduced motion the trace resolves instantly with every hop timing shown.
  */
 
-// Main request path, left → right, then back to the client.
+// Main request path for a single interview turn, left → right, then back to the
+// client. Mirrors the README's "Data Flow — Interview Session": STT runs
+// on-device in the Flutter client, the transcript goes up over the WebSocket, an
+// async Lambda worker scores + generates via Bedrock, Polly synthesizes, and the
+// audio + live score are pushed back down the same socket.
 const PIPELINE = [
   {
-    id: 'client', label: 'Flutter Client', sub: 'iOS + Android',
-    chosen: 'One Dart codebase with low-latency mic capture and audio playback.',
-    rejected: 'React Native — weaker native audio-streaming story at the time.',
-    ms: 40, hop: 'Capture + upstream',
+    id: 'client', label: 'Flutter Client', sub: 'On-device STT',
+    chosen: 'One Dart codebase (iOS/Android/web) with on-device speech_to_text, so the transcript is ready the instant the turn ends.',
+    rejected: 'Server-side transcription — adds a whole network + STT round trip after every answer.',
+    ms: 120, hop: 'Capture + transcribe',
   },
   {
     id: 'gateway', label: 'API Gateway', sub: 'WebSocket',
-    chosen: 'API Gateway WebSocket for full-duplex streaming of audio + events.',
+    chosen: 'API Gateway WebSocket for full-duplex streaming of turn text + state events.',
     rejected: 'REST polling — too laggy for a live spoken conversation.',
     ms: 60, hop: 'Duplex transport',
   },
   {
-    id: 'vad', label: 'VAD', sub: 'End-of-turn',
-    chosen: 'Server-side energy-threshold VAD over a rolling window (see the live demo above).',
-    rejected: 'Fixed push-to-talk — unnatural, breaks conversational flow.',
-    ms: 60, hop: 'Turn detection',
+    id: 'worker', label: 'Async Worker', sub: 'Lambda',
+    chosen: 'sendTextHandler → asyncWorker.processUserTurn: saves the transcript, manages a rolling 20-turn context window, then invokes the model.',
+    rejected: 'One synchronous handler — would hit the API Gateway timeout on longer turns.',
+    ms: 120, hop: 'Orchestrate turn',
   },
   {
-    id: 'stt', label: 'STT', sub: 'Speech → text',
-    chosen: 'Streaming transcription so text is ready the moment the turn ends.',
-    rejected: 'Batch transcription — adds whole seconds after each turn.',
-    ms: 280, hop: 'Transcribe',
-  },
-  {
-    id: 'bedrock', label: 'Bedrock', sub: 'Nemotron + Claude',
-    chosen: 'Nemotron scores the answer; Claude drives the interview flow + follow-ups.',
-    rejected: 'A single general model — worse at both scoring and interviewing.',
+    id: 'bedrock', label: 'Bedrock', sub: 'Nemotron-super',
+    chosen: 'Nemotron-super-3-120b both scores the answer (per-dimension) and streams the next question via ConverseStream.',
+    rejected: 'A generic model — weaker at structured scoring and adaptive interviewing.',
     ms: 900, hop: 'Reason + score',
   },
   {
     id: 'polly', label: 'Amazon Polly', sub: 'Text → speech',
-    chosen: 'Neural voices for a natural interviewer; 5 selectable voices.',
+    chosen: 'Neural voices for a natural interviewer; 5 selectable personas (Tiffany, Ruth, Joanna, Matthew, Stephen). Audio lands in S3.',
     rejected: 'On-device TTS — robotic, inconsistent across platforms.',
     ms: 260, hop: 'Synthesize',
   },
   {
-    id: 'return', label: 'Client Playback', sub: 'Audio + feedback',
-    chosen: 'Streamed audio reply + live scoring pushed back over the same socket.',
+    id: 'return', label: 'Client Playback', sub: 'Audio + score',
+    chosen: 'Presigned S3 audio URL + live scoring pushed back over the same socket, played via just_audio.',
     rejected: 'Polling for the result — extra round-trips, visible lag.',
     ms: 60, hop: 'Downstream',
   },
 ];
 
-// Services that sit alongside the main path.
+// Services that sit alongside the main turn path (auth, storage, and the async
+// post-session feedback pipeline).
 const SUPPORTING = [
-  { id: 'firebase', label: 'Firebase Auth', where: 'Guards the client + socket handshake.' },
-  { id: 'textract', label: 'Textract', where: 'Parses the uploaded résumé into question context.' },
-  { id: 's3', label: 'S3', where: 'Stores résumés and generated audio artifacts.' },
-  { id: 'dynamodb', label: 'DynamoDB', where: 'Holds session state, transcripts, and scores.' },
-  { id: 'fcm', label: 'FCM', where: 'Delivers the final feedback report as a push.' },
+  { id: 'firebase', label: 'Firebase Auth', where: 'Email/password + Google sign-in; JWTs validated server-side via Firebase Admin.' },
+  { id: 'textract', label: 'Textract', where: 'OCR-parses the uploaded résumé PDF into structured question context.' },
+  { id: 's3', label: 'S3', where: 'Stores résumés, Polly audio, and scraped WEBSITE-mode content.' },
+  { id: 'dynamodb', label: 'DynamoDB', where: '8 tables: sessions, transcripts, feedback, users, concept states, and more.' },
+  { id: 'feedback', label: 'SNS → Claude 3 Haiku', where: 'On session end, an SNS-triggered pipeline has Claude 3 Haiku write the qualitative feedback report.' },
+  { id: 'fcm', label: 'FCM', where: 'Delivers the finished feedback report to the phone as a push notification.' },
 ];
 
-const TOTAL_MS = PIPELINE.reduce((a, n) => a + n.ms, 0); // 1660ms ≈ 1.7s
+const TOTAL_MS = PIPELINE.reduce((a, n) => a + n.ms, 0); // 1520ms ≈ 1.5s
 
 const QlueArchitecture = () => {
   const prefersReducedMotion = useReducedMotion();

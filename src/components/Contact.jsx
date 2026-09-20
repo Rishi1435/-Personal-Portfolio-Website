@@ -79,7 +79,7 @@ const Contact = () => {
   return (
     <section 
       id="contact" 
-      className="relative overflow-hidden flex items-center py-28"
+      className="relative overflow-hidden flex items-center py-20 md:py-24"
     >
       <div className="container max-w-[1050px] mx-auto px-6 md:px-12 relative z-10 w-full">
         
@@ -87,7 +87,7 @@ const Contact = () => {
         <ScrollReveal>
           <div className="mb-16 text-center">
             <span className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-widest uppercase mb-3 block select-none">
-              // 05 · GET IN TOUCH
+              // 06 · GET IN TOUCH
             </span>
             <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-display font-black leading-none tracking-tight section-title select-none">
               Let's Connect

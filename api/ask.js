@@ -40,7 +40,7 @@ const UPSTREAM_TIMEOUT_MS = Number(process.env.ASK_TIMEOUT_MS) || 9500;
 // Upper bound if the plan allows it (Vercel Hobby clamps this to 10s, which is fine).
 export const config = { maxDuration: 60 };
 
-const SECTIONS = ['hero', 'about', 'experience', 'skills', 'qlue', 'xpensia', 'projects', 'contact'];
+const SECTIONS = ['hero', 'about', 'experience', 'skills', 'stats', 'qlue', 'xpensia', 'projects', 'contact'];
 
 const ALLOWED_ORIGINS = [
   'https://rishipediredla.vercel.app',

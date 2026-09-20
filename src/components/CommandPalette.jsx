@@ -35,6 +35,7 @@ const CommandPalette = () => {
     { id: 'home', label: 'Go to Home', hint: 'Section', icon: '⌂', run: () => scrollTo('#home') },
     { id: 'about', label: 'Go to About', hint: 'Section', icon: '§', run: () => scrollTo('#about') },
     { id: 'skills', label: 'Go to Skills', hint: 'Section', icon: '§', run: () => scrollTo('#skills') },
+    { id: 'stats', label: 'Go to Stats', hint: 'Section', icon: '§', run: () => scrollTo('#stats') },
     { id: 'projects', label: 'Go to Projects', hint: 'Section', icon: '§', run: () => scrollTo('#projects') },
     { id: 'contact', label: 'Go to Contact', hint: 'Section', icon: '§', run: () => scrollTo('#contact') },
     {

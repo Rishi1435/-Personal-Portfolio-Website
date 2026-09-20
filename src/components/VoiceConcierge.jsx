@@ -12,15 +12,12 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
  *      browser after first use. Works in Firefox/Safari/iOS.
  *   3. A typed input is always visible as the last-resort fallback.
  *
- * TTS is tiered too, all free:
- *   1. DEFAULT — Google Translate's TTS endpoint, played straight from an <audio>
- *      element in the *visitor's own browser* (no key, no server proxy). It sends
- *      Cross-Origin-Resource-Policy: cross-origin, so it plays even on this
- *      cross-origin-isolated page. Fetching from each visitor's IP (not a shared
- *      server IP) is what keeps us clear of rate limits. ~0.3s to first audio.
- *   2. FALLBACK — native SpeechSynthesis, if a Google chunk ever errors/throttles.
- *   3. OPT-IN — Kokoro HD (see below): fully on-device, higher quality, but a
- *      one-time ~80MB download and slower synthesis. Off by default now.
+ * TTS is two-tier, both free and on-device:
+ *   1. DEFAULT — native SpeechSynthesis (the browser's own voice). Zero download,
+ *      instant, and decent on modern Chrome/Edge/Mac; we rank the available voices
+ *      and pick the most natural one (see pickBestVoice).
+ *   2. OPT-IN — Kokoro HD (see below): higher quality, but a one-time ~80MB
+ *      download and slower synthesis, so it's off by default behind a toggle.
  * The answer + optional section come from /api/ask (the model never runs client-side).
  */
 
@@ -34,51 +31,9 @@ const TRANSFORMERS_CDN = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers
 const WHISPER_MODEL = 'Xenova/whisper-tiny.en';
 
 // HD voice: Kokoro (the most natural open TTS right now), loaded from a CDN
-// (never bundled), q8 quantized (~80MB one-time, browser-cached). Default ON for
-// capable devices and preloaded in the background (see canPreload); weak/metered
-// devices fall back to the free, zero-download native voice.
+// (never bundled), q8 quantized (~80MB one-time, browser-cached). Opt-in only,
+// behind a toggle; when off, the free zero-download native voice is used.
 const KOKORO_VOICE = 'af_heart'; // top-graded natural American voice (model runs in a worker)
-
-// Default voice: Google Translate TTS via our same-origin /api/tts proxy. Chrome's
-// ORB blocks loading Google directly into <audio> cross-origin, so the proxy
-// fetches server-side and streams the MP3 back same-origin (plays fine, including
-// on this isolated page). The proxy caches each phrase at the edge, so repeats
-// never re-hit Google. The `q` text is capped at ~200 chars per request, so we
-// split the answer into <=180-char chunks on natural boundaries and play them
-// back-to-back. Identical text → identical URL → CDN cache hit.
-const GOOGLE_CHUNK_MAX = 180; // stay safely under Google's ~200-char q limit
-const GOOGLE_MAX_CHUNKS = 12; // hard cap so a runaway answer can't fan out requests
-
-const ttsProxyUrl = (text) => `/api/tts?q=${encodeURIComponent(text)}`;
-
-// Split into <=GOOGLE_CHUNK_MAX pieces, breaking only after sentence/clause
-// punctuation followed by whitespace (so "gmail.com" or "U.S." never splits), and
-// on word boundaries as a fallback. Never cuts mid-word.
-const chunkForTts = (raw) => {
-  const text = (raw || '').replace(/\s+/g, ' ').trim();
-  if (!text) return [];
-  if (text.length <= GOOGLE_CHUNK_MAX) return [text];
-  // Prefer sentence/clause ends: . ! ? , ; : — only when followed by a space.
-  const parts = text.split(/(?<=[.!?,;:])\s+/);
-  const chunks = [];
-  let cur = '';
-  const pushWords = (segment) => {
-    // A single part longer than the cap → split on spaces without breaking words.
-    for (const word of segment.split(' ')) {
-      if (!cur) cur = word;
-      else if ((cur + ' ' + word).length <= GOOGLE_CHUNK_MAX) cur += ' ' + word;
-      else { chunks.push(cur); cur = word; }
-    }
-  };
-  for (const part of parts) {
-    if (part.length > GOOGLE_CHUNK_MAX) { if (cur) { chunks.push(cur); cur = ''; } pushWords(part); continue; }
-    if (!cur) cur = part;
-    else if ((cur + ' ' + part).length <= GOOGLE_CHUNK_MAX) cur += ' ' + part;
-    else { chunks.push(cur); cur = part; }
-  }
-  if (cur) chunks.push(cur);
-  return chunks.slice(0, GOOGLE_MAX_CHUNKS);
-};
 
 // Whether it's polite to auto-download the ~80MB HD model in the background.
 // Skips data-saver, slow/metered connections, and clearly weak devices so we
@@ -138,9 +93,11 @@ async function blobToMono16k(blob) {
   return out;
 }
 
-const VoiceConcierge = () => {
+const VoiceConcierge = ({ embedded = false } = {}) => {
   const prefersReducedMotion = useReducedMotion();
-  const [open, setOpen] = useState(false);
+  // Embedded (on the Qlue demo screen) renders inline and stays open; the floating
+  // overlay starts closed behind its orb.
+  const [open, setOpen] = useState(embedded);
   const [phase, setPhase] = useState('idle'); // idle | listening | thinking | speaking
   const [engine, setEngine] = useState(() => (getNativeSR() ? 'native' : 'wasm'));
   const [modelStatus, setModelStatus] = useState('unloaded'); // unloaded | loading | ready
@@ -149,7 +106,7 @@ const VoiceConcierge = () => {
   const [notice, setNotice] = useState('');
   const [typed, setTyped] = useState('');
   const [hdVoice, setHdVoice] = useState(() => {
-    // Default is the fast Google voice; HD (Kokoro) is opt-in only, so a visitor
+    // Default is the fast native voice; HD (Kokoro) is opt-in only, so a visitor
     // isn't hit with an 80MB download unless they explicitly ask for it.
     return (typeof localStorage !== 'undefined' ? localStorage.getItem('hdVoice') : null) === '1';
   });
@@ -170,7 +127,6 @@ const VoiceConcierge = () => {
   const pendingRef = useRef(new Map()); // requestId -> { resolve, reject }
   const reqIdRef = useRef(0);
   const audioRef = useRef(null);
-  const googleAudiosRef = useRef([]); // queued <audio> chunks for the Google voice
   const speakTimerRef = useRef(null);
   const keepAliveRef = useRef(null);
   const activeHdIdRef = useRef(0); // bumped to invalidate an in-flight HD turn
@@ -193,15 +149,10 @@ const VoiceConcierge = () => {
     if (keepAliveRef.current) { clearInterval(keepAliveRef.current); keepAliveRef.current = null; }
   }, []);
 
-  // Stop whatever is currently producing audio (Kokoro element + every queued
-  // Google chunk), detaching handlers so a paused clip can't fire onended/onerror
-  // and revive a turn we're abandoning.
+  // Stop the Kokoro audio element, detaching handlers so a paused clip can't fire
+  // onended/onerror and revive a turn we're abandoning.
   const stopSpeakingAudio = useCallback(() => {
     try { if (audioRef.current) { audioRef.current.onended = null; audioRef.current.onerror = null; audioRef.current.pause(); } } catch { /* noop */ }
-    for (const a of googleAudiosRef.current) {
-      try { a.onended = null; a.onerror = null; a.pause(); a.removeAttribute('src'); } catch { /* noop */ }
-    }
-    googleAudiosRef.current = [];
   }, []);
 
   const finishSpeaking = useCallback(() => {
@@ -324,56 +275,10 @@ const VoiceConcierge = () => {
     }
   }, [loadKokoro, generateHD, speakNative, finishSpeaking, armWatchdog]);
 
-  // Default voice: Google Translate TTS, played from the visitor's own browser.
-  // Chunks are preloaded in parallel then played back-to-back; any failure hands
-  // the *rest* of the answer to the native voice so playback never dies mid-turn.
-  const speakGoogle = useCallback((text) => {
-    const myId = ++activeHdIdRef.current; // this turn's token
-    const current = () => activeHdIdRef.current === myId;
-    stopSpeakingAudio();
-
-    const chunks = chunkForTts(text);
-    if (!chunks.length) { setPhase('idle'); return; }
-
-    setPhase('speaking');
-    // Watchdog: Google speech runs ~180ms/char; cap generously, retighten on play.
-    armWatchdog(Math.min(60000, Math.max(8000, text.length * 220 + 4000)));
-
-    // Preload every chunk in parallel via the same-origin proxy. Repeated phrases
-    // are served from the edge cache (no Google hit); a failed/429 chunk falls
-    // back to the native voice below, so a visitor never hears silence.
-    const els = chunks.map((c) => {
-      const a = new Audio();
-      a.preload = 'auto';
-      a.src = ttsProxyUrl(c);
-      return a;
-    });
-    googleAudiosRef.current = els;
-
-    // Fall back to the native voice for the remaining (unspoken) text.
-    const fallbackFrom = (i) => {
-      if (!current()) return;
-      stopSpeakingAudio();
-      speakNative(chunks.slice(i).join(' '));
-    };
-
-    const playFrom = (i) => {
-      if (!current()) return;
-      if (i >= els.length) { finishSpeaking(); return; }
-      const el = els[i];
-      el.onended = () => { if (current()) playFrom(i + 1); };
-      el.onerror = () => fallbackFrom(i); // this chunk (and the rest) → native voice
-      el.play().then(() => {
-        if (i === 0) armWatchdog(Math.min(60000, Math.max(8000, text.length * 220 + 6000)));
-      }).catch(() => fallbackFrom(i));
-    };
-    playFrom(0);
-  }, [stopSpeakingAudio, armWatchdog, speakNative, finishSpeaking]);
-
   const speak = useCallback((text) => {
     if (hdVoice) speakHD(text);
-    else speakGoogle(text);
-  }, [hdVoice, speakHD, speakGoogle]);
+    else speakNative(text);
+  }, [hdVoice, speakHD, speakNative]);
 
   // Preload the HD model in the background as soon as the page is idle, so it's
   // ready to speak the moment a visitor asks — instead of a 30-50s wait on first
@@ -572,14 +477,14 @@ const VoiceConcierge = () => {
     setOpen(false);
   }, [stopEverything]);
 
-  // Escape closes; focus moves into the panel on open.
+  // Escape closes the floating panel (not the embedded one — nothing to close).
   useEffect(() => {
-    if (!open) return;
+    if (!open || embedded) return;
     const onKey = (e) => { if (e.key === 'Escape') closePanel(); };
     document.addEventListener('keydown', onKey);
     requestAnimationFrame(() => panelRef.current?.querySelector('button, input')?.focus());
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, closePanel]);
+  }, [open, embedded, closePanel]);
 
   // Stop any live audio/mic when the panel is not open (no state writes here).
   useEffect(() => {
@@ -606,31 +511,37 @@ const VoiceConcierge = () => {
 
   return (
     <>
-      {/* Floating trigger */}
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        aria-label="Ask about Rishi — voice Q&A"
-        className={`fixed right-4 bottom-[4.75rem] md:bottom-6 md:right-6 z-[9995] w-14 h-14 rounded-full flex items-center justify-center bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-glow)] text-black shadow-[0_8px_30px_color-mix(in_srgb,var(--color-accent)_50%,transparent)] transition-transform active:scale-95 ${open ? 'scale-0 pointer-events-none' : 'scale-100'} ${prefersReducedMotion ? '' : 'hover:scale-105'}`}
-      >
-        {!prefersReducedMotion && <span className="absolute inset-0 rounded-full bg-[var(--color-accent)] animate-ping opacity-30" />}
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 003-3V6a3 3 0 00-6 0v6a3 3 0 003 3z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 12a7 7 0 01-14 0M12 19v3" />
-        </svg>
-      </button>
+      {/* Floating trigger — hidden in embedded (demo-screen) mode */}
+      {!embedded && (
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          aria-label="Ask about Rishi — voice Q&A"
+          className={`fixed right-4 bottom-[4.75rem] md:bottom-6 md:right-6 z-[9995] w-14 h-14 rounded-full flex items-center justify-center bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-glow)] text-black shadow-[0_8px_30px_color-mix(in_srgb,var(--color-accent)_50%,transparent)] transition-transform active:scale-95 ${open ? 'scale-0 pointer-events-none' : 'scale-100'} ${prefersReducedMotion ? '' : 'hover:scale-105'}`}
+        >
+          {!prefersReducedMotion && <span className="absolute inset-0 rounded-full bg-[var(--color-accent)] animate-ping opacity-30" />}
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 003-3V6a3 3 0 00-6 0v6a3 3 0 003 3z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 12a7 7 0 01-14 0M12 19v3" />
+          </svg>
+        </button>
+      )}
 
-      {/* Anchored panel */}
+      {/* Panel — fixed overlay by default, inline block when embedded */}
       {open && (
         <div
           ref={panelRef}
           role="dialog"
           aria-modal="false"
           aria-label="Ask about Rishi"
-          className="fixed right-3 left-3 sm:left-auto bottom-3 sm:bottom-6 sm:right-6 z-[9996] sm:w-[380px] rounded-2xl border border-white/10 bg-[#0a0a0a]/95 backdrop-blur-xl shadow-[0_24px_80px_rgba(0,0,0,0.85)] overflow-hidden"
+          className={
+            embedded
+              ? 'relative w-full max-w-xl mx-auto rounded-2xl border border-white/10 bg-[#0a0a0a]/95 backdrop-blur-xl shadow-[0_24px_80px_rgba(0,0,0,0.6)] overflow-hidden'
+              : 'fixed right-3 left-3 sm:left-auto bottom-3 sm:bottom-6 sm:right-6 z-[9996] sm:w-[380px] rounded-2xl border border-white/10 bg-[#0a0a0a]/95 backdrop-blur-xl shadow-[0_24px_80px_rgba(0,0,0,0.85)] overflow-hidden'
+          }
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
@@ -639,14 +550,16 @@ const VoiceConcierge = () => {
               <span className="font-body text-sm font-semibold text-white">Ask about Rishi</span>
               <span className="font-mono text-[9px] text-white/30 uppercase tracking-wider">voice Q&amp;A</span>
             </div>
-            <button
-              type="button"
-              onClick={closePanel}
-              aria-label="Close"
-              className="text-white/40 hover:text-white text-xl leading-none cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent-glow)] rounded"
-            >
-              ×
-            </button>
+            {!embedded && (
+              <button
+                type="button"
+                onClick={closePanel}
+                aria-label="Close"
+                className="text-white/40 hover:text-white text-xl leading-none cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent-glow)] rounded"
+              >
+                ×
+              </button>
+            )}
           </div>
 
           {/* Body */}

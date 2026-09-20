@@ -207,52 +207,8 @@ body::after {
   color: #ffffff;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   Custom Cursor — Desktop only.
-   Hidden on touch / mobile via media query.
-   ═══════════════════════════════════════════════════════════════ */
-@media (pointer: fine) {
-  .custom-cursor-dot {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 8px;
-    height: 8px;
-    background: var(--color-accent);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 99999;
-    box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 60%, transparent),
-                0 0 4px color-mix(in srgb, var(--color-accent) 80%, transparent);
-    mix-blend-mode: screen;
-    transition: width 0.2s ease, height 0.2s ease, background 0.2s ease;
-  }
-  .custom-cursor-dot.hovering {
-    width: 14px;
-    height: 14px;
-    background: var(--color-accent-glow);
-    box-shadow: 0 0 20px color-mix(in srgb, var(--color-accent-glow) 70%, transparent),
-                0 0 6px color-mix(in srgb, var(--color-accent-glow) 90%, transparent);
-  }
-  .custom-cursor-ring {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 36px;
-    height: 36px;
-    border: 1px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 99998;
-    transition: width 0.3s ease, height 0.3s ease, border-color 0.3s ease, opacity 0.3s ease;
-  }
-  .custom-cursor-ring.hovering {
-    width: 48px;
-    height: 48px;
-    border-color: color-mix(in srgb, var(--color-accent-glow) 40%, transparent);
-    opacity: 0.8;
-  }
-}
+/* The native OS cursor is used site-wide. A faint light trail follows the
+   pointer's path (painted on a canvas in <CustomCursor>); it needs no CSS. */
 
 /* Concierge section-highlight pulse — applied briefly when the assistant
    scrolls to the section its answer is about. */
