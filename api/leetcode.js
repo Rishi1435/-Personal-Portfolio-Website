@@ -122,7 +122,9 @@ export default async function handler(req, res) {
       fetchedAt: new Date().toISOString(),
     };
 
-    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    // 5-min edge cache + background revalidation (see api/github.js for why this
+    // beats a webhook here — LeetCode has no webhook to subscribe to anyway).
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400');
     return res.status(200).json(payload);
   } catch (err) {
     res.setHeader('Cache-Control', 'no-store');

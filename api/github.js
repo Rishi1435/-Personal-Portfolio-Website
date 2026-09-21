@@ -252,8 +252,10 @@ export default async function handler(req, res) {
     }
 
     // Enrich the featured projects with a README-derived description (parallel,
-    // best-effort). Edge caching means this only runs ~hourly, not per visitor.
-    if (topRepos.length) {
+    // best-effort). Each summary is an extra GitHub call, so with a 5-min refresh
+    // window we only do it when authenticated (GITHUB_TOKEN → 5,000/hr). Without a
+    // token we skip it and keep the repo's own description to stay under 60/hr.
+    if (topRepos.length && process.env.GITHUB_TOKEN) {
       topRepos = await Promise.all(
         topRepos.map(async (r) => ({
           ...r,
@@ -262,9 +264,11 @@ export default async function handler(req, res) {
       );
     }
 
-    // Live but cheap: the CDN serves this for an hour, then revalidates in the
-    // background (stale-while-revalidate) so visitors never wait on GitHub.
-    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    // Live but cheap: the CDN serves this instantly for 5 min, then revalidates
+    // in the background (stale-while-revalidate) so a visitor never waits on
+    // GitHub — freshness costs ~1 upstream fetch per region per 5 min, NOT one
+    // per visitor. GITHUB_TOKEN keeps this well under the rate limit.
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400');
     return res.status(200).json({ profile, repos, topRepos, contributions, stats, streak, fetchedAt: new Date().toISOString() });
   } catch (err) {
     res.setHeader('Cache-Control', 'no-store');

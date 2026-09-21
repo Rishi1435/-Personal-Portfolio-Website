@@ -28,6 +28,7 @@ the `/api/ask` Node function.) So: **Vercel Hobby**.
    | Name | Value |
    | --- | --- |
    | `NVIDIA_API_KEY` | your key from build.nvidia.com (**required**) |
+   | `GITHUB_TOKEN` | *(recommended)* fine-grained token, **no scopes** — lifts the GitHub API from 60/hr to 5,000/hr so the live stats can refresh every 5 min. Without it, README enrichment is skipped to stay under the unauth limit. |
    | `ASK_MODEL` | *(optional)* defaults to `openai/gpt-oss-20b` |
    | `UPSTASH_REDIS_REST_URL` / `_TOKEN` | *(optional)* free Upstash, cross-instance rate limit |
 
