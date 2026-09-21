@@ -298,13 +298,21 @@ const MagneticButton = ({ href, children, className = '', featured = false }) =>
   );
 };
 
-/* ─── Featured Project Card (Qlue — flagship, refined & compact) ─────────
-   Text lives on the content side; the animated app mockup + a tight metrics
-   strip anchor the media side. Smaller type scale and lighter padding so the
-   flagship reads as polished rather than oversized. */
-const FeaturedProjectCard = ({ project }) => {
-  const { index, title, subtitle, description, tech, github, metrics, Visual, status, video, poster, demo } = project;
+/* ─── Featured Project Card (unified — Qlue flagship & standard builds) ──────
+   One refined, compact layout shared by every top-billed project. An animated
+   app mockup + a tight metrics strip anchor the media side; the write-up, tech
+   slice and CTAs live on the content side. `reverse` mirrors the split so a
+   stack of cards alternates media left / right. `project.featured` upgrades the
+   glass treatment and swaps the tag to "Flagship". */
+const FeaturedProjectCard = ({ project, reverse = false }) => {
+  const { index, title, subtitle, description, tech, github, metrics = [], Visual, status, video, poster, demo, featured, tag } = project;
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
+
+  // Full literal class strings so Tailwind's scanner keeps them (no dynamic build).
+  const metricsGrid = metrics.length <= 3
+    ? 'grid grid-cols-3 gap-2.5'
+    : 'grid grid-cols-3 sm:grid-cols-5 gap-2.5';
+  const label = tag || (featured ? 'Flagship' : 'Featured Build');
 
   return (
     <motion.article
@@ -314,20 +322,20 @@ const FeaturedProjectCard = ({ project }) => {
       initial={{ opacity: 0, y: 40 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-      className="glass-card-featured group overflow-hidden"
+      className={`${featured ? 'glass-card-featured' : 'glass-card'} group overflow-hidden`}
     >
-      {/* Flagship hairline glow */}
+      {/* Top hairline glow */}
       <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[var(--color-accent)] to-transparent opacity-50" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
 
         {/* ── Media Panel (the product) ───────────────────── */}
-        <div className="p-5 md:p-6 flex flex-col gap-5 bg-gradient-to-br from-white/[0.02] to-transparent border-b lg:border-b-0 lg:border-r border-white/[0.06]">
-          {/* Flagship tag + status */}
+        <div className={`p-5 md:p-6 flex flex-col gap-5 bg-gradient-to-br from-white/[0.02] to-transparent border-b lg:border-b-0 border-white/[0.06] ${reverse ? 'lg:order-2 lg:border-l' : 'lg:border-r'}`}>
+          {/* Tag + status */}
           <div className="flex items-center justify-between relative z-10">
             <span className="inline-flex items-center gap-2 font-body text-[10px] font-bold tracking-[0.2em] uppercase text-[var(--color-accent)]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent-glow)]" />
-              Flagship
+              <span className={`w-1.5 h-1.5 rounded-full ${featured ? 'bg-[var(--color-accent-glow)]' : 'bg-[var(--color-accent)]/40'}`} />
+              {label}
             </span>
             <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full font-body text-[10px] font-semibold tracking-wider uppercase ${status === 'ARCHIVED' ? 'bg-white/5 border border-white/10 text-white/50' : 'bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/25 text-[var(--color-accent-glow)]'}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${status === 'ARCHIVED' ? 'bg-white/30' : 'bg-[var(--color-accent-glow)] animate-pulse'}`} />
@@ -340,14 +348,16 @@ const FeaturedProjectCard = ({ project }) => {
             <ProjectMedia webm={video} poster={poster} Fallback={Visual} label={`${title} demo`} />
           </div>
 
-          {/* Metrics strip — compact */}
-          <div className="relative z-10 grid grid-cols-3 sm:grid-cols-5 gap-2.5">
-            {metrics.map((m) => <MetricCard key={m.label} size="sm" {...m} />)}
-          </div>
+          {/* Metrics strip — compact, adapts to 3 or 5 metrics */}
+          {metrics.length > 0 && (
+            <div className={`relative z-10 ${metricsGrid}`}>
+              {metrics.map((m) => <MetricCard key={m.label} size="sm" {...m} />)}
+            </div>
+          )}
         </div>
 
         {/* ── Content Panel ───────────────────────────────── */}
-        <div className="flex flex-col p-5 md:p-6 relative z-10">
+        <div className={`flex flex-col p-5 md:p-6 relative z-10 ${reverse ? 'lg:order-1' : ''}`}>
 
           {/* Title block */}
           <div className="flex items-start gap-3 mb-4">
@@ -362,7 +372,7 @@ const FeaturedProjectCard = ({ project }) => {
             </div>
           </div>
 
-          {/* Overview — clamped; full detail lives on /qlue-live */}
+          {/* Overview — clamped so every card reads at the same height */}
           <p className="font-body text-[#a0a0b8] text-sm leading-relaxed line-clamp-4">
             {description}
           </p>
@@ -377,7 +387,7 @@ const FeaturedProjectCard = ({ project }) => {
             )}
           </div>
 
-          {/* CTAs — Live Demonstration (in-app route) + GitHub */}
+          {/* CTAs — Live Demonstration (in-app route) when present + GitHub */}
           <div className="flex flex-wrap items-center gap-3 mt-auto pt-6">
             {demo && (
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
@@ -398,105 +408,6 @@ const FeaturedProjectCard = ({ project }) => {
               <FaGithub size={16} />
               View on GitHub
               <FaExternalLinkAlt size={10} className="opacity-70" />
-            </MagneticButton>
-          </div>
-
-        </div>
-      </div>
-    </motion.article>
-  );
-};
-
-/* ─── Standard Project Card (e.g. Xpensia) ─────────────────── */
-const ProjectCard = ({ project, reverse }) => {
-  const { index, title, subtitle, description, tech, github, metrics, Visual, status, video, poster } = project;
-  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
-
-  return (
-    <motion.article
-      ref={ref}
-      id={`${project.id}-card`}
-      style={{ scrollMarginTop: '90px' }}
-      initial={{ opacity: 0, y: 30 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay: 0.1 }}
-      className="glass-card group overflow-hidden"
-    >
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-        
-        {/* ── Visual Panel ────────────────────────────────── */}
-        <div className={`p-6 md:p-8 flex flex-col justify-between bg-gradient-to-br from-white/[0.02] to-transparent border-b lg:border-b-0 ${reverse ? 'lg:border-l lg:order-2 border-white/[0.06]' : 'lg:border-r border-white/[0.06]'}`}>
-          
-          {/* Top meta row */}
-          <div className="flex items-center justify-between mb-6 relative z-10">
-            <div className="flex items-center gap-3">
-              <span className="font-display font-bold text-3xl text-white/10 select-none">
-                {index}
-              </span>
-              <div className="h-4 w-px bg-white/10" />
-              <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 font-body text-[10px] font-semibold tracking-wider uppercase ${status === 'ARCHIVED' ? 'text-white/50' : 'text-[var(--color-accent-glow)]'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${status === 'ARCHIVED' ? 'bg-white/30' : 'bg-[var(--color-accent-glow)] animate-pulse'}`} />
-                <span>{status || 'SOURCE'}</span>
-              </div>
-            </div>
-            <span className="font-body text-xs text-white/30 font-bold tracking-widest uppercase">
-              // FEATURED
-            </span>
-          </div>
-
-          {/* Title & Subtitle */}
-          <div className="mb-6 relative z-10">
-            <h3 className="text-2xl sm:text-3xl md:text-4xl font-display font-black text-white tracking-tight leading-none group-hover:text-[var(--color-accent-glow)] transition-colors duration-300">
-              {title}
-            </h3>
-            <p className="font-body text-xs sm:text-sm text-[var(--color-accent)] font-medium mt-2 tracking-wide uppercase">
-              {subtitle}
-            </p>
-          </div>
-
-          {/* Visual — video loop when available, else animated SVG mockup */}
-          <div className="relative z-10 rounded-2xl overflow-hidden bg-black/40 border border-white/[0.06] p-2">
-            <ProjectMedia webm={video} poster={poster} Fallback={Visual} label={`${title} demo`} />
-          </div>
-
-          {/* Metrics strip */}
-          <div className="relative z-10 mt-6 pt-5 border-t border-white/[0.08] grid grid-cols-3 gap-4">
-            {metrics.map((m) => <MetricCard key={m.label} size="sm" {...m} />)}
-          </div>
-        </div>
-
-        {/* ── Content Panel ────────────────────────────────── */}
-        <div className={`flex flex-col justify-between p-8 relative z-10 ${reverse ? 'lg:col-start-1 lg:row-start-1' : ''}`}>
-
-          {/* Description */}
-          <div>
-            <div className="flex items-center gap-2 mb-5">
-              <span className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-widest uppercase">// OVERVIEW</span>
-              <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
-            </div>
-            <p className="font-body text-[#a0a0b8] text-sm md:text-base leading-relaxed">
-              {description}
-            </p>
-          </div>
-
-          {/* Tech Stack */}
-          <div className="mt-8">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="font-body text-xs text-[var(--color-accent)] font-semibold tracking-widest uppercase">// BUILT WITH</span>
-              <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
-            </div>
-            <div className="flex flex-wrap gap-2 mb-8">
-              {tech.map((t, i) => <TechBadge key={t} label={t} i={i} />)}
-            </div>
-
-            {/* GitHub CTA: Magnetic */}
-            <MagneticButton
-              href={github}
-              className="inline-flex items-center gap-3 px-7 py-3.5 bg-transparent font-body font-bold text-xs tracking-wider uppercase rounded-xl hover:!bg-[var(--color-accent)] hover:!text-white cursor-hover"
-            >
-              <FaGithub size={16} />
-              View on GitHub
-              <FaExternalLinkAlt size={11} className="opacity-70" />
             </MagneticButton>
           </div>
 
@@ -774,12 +685,10 @@ const Projects = () => {
           </div>
         </ScrollReveal>
 
-        {/* ── Featured Project Card Stack ──────────────────── */}
+        {/* ── Featured Project Card Stack (alternating media side) ── */}
         <div className="flex flex-col gap-10 mb-10">
           {projects.map((project, i) => (
-            project.featured
-              ? <FeaturedProjectCard key={project.id} project={project} />
-              : <ProjectCard key={project.id} project={project} reverse={i % 2 !== 0} />
+            <FeaturedProjectCard key={project.id} project={project} reverse={i % 2 !== 0} />
           ))}
         </div>
 
