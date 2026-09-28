@@ -7,7 +7,7 @@ import ProjectMedia from './ProjectMedia';
 import ScrollReveal from './ScrollReveal';
 import { qlue } from '../data/qlue';
 import { useReducedMotion } from '../hooks/useReducedMotion';
-import { FaGithub, FaExternalLinkAlt, FaPlay, FaStar, FaCodeBranch } from 'react-icons/fa';
+import { FaGithub, FaExternalLinkAlt, FaPlay, FaStar, FaCodeBranch, FaGlobe } from 'react-icons/fa';
 
 /* ─── Featured Project Data ────────────────────────────────── */
 // Qlue is the single source of truth in src/data/qlue.js (shared with /qlue-live).
@@ -305,7 +305,7 @@ const MagneticButton = ({ href, children, className = '', featured = false }) =>
    stack of cards alternates media left / right. `project.featured` upgrades the
    glass treatment and swaps the tag to "Flagship". */
 const FeaturedProjectCard = ({ project, reverse = false }) => {
-  const { index, title, subtitle, description, tech, github, metrics = [], Visual, status, video, poster, demo, featured, tag } = project;
+  const { index, title, subtitle, description, tech, github, metrics = [], Visual, status, video, poster, demo, liveUrl, featured, tag } = project;
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
 
   // Full literal class strings so Tailwind's scanner keeps them (no dynamic build).
@@ -387,7 +387,8 @@ const FeaturedProjectCard = ({ project, reverse = false }) => {
             )}
           </div>
 
-          {/* CTAs — Live Demonstration (in-app route) when present + GitHub */}
+          {/* CTAs — Live Demonstration (in-app) + Live Preview (real deployed
+              app: download + web version) + GitHub */}
           <div className="flex flex-wrap items-center gap-3 mt-auto pt-6">
             {demo && (
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
@@ -399,6 +400,17 @@ const FeaturedProjectCard = ({ project, reverse = false }) => {
                   Live Demonstration
                 </Link>
               </motion.div>
+            )}
+            {liveUrl && (
+              <MagneticButton
+                href={liveUrl}
+                featured={true}
+                className="inline-flex items-center gap-2.5 px-6 py-3.5 bg-[var(--color-accent)]/10 font-body font-bold text-xs tracking-wider uppercase rounded-xl hover:!bg-[var(--color-accent)] hover:!text-white cursor-hover"
+              >
+                <FaGlobe size={14} />
+                Live Preview
+                <FaExternalLinkAlt size={10} className="opacity-70" />
+              </MagneticButton>
             )}
             <MagneticButton
               href={github}

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaGithub, FaExternalLinkAlt, FaMicrophone } from 'react-icons/fa';
+import { FaArrowLeft, FaGithub, FaExternalLinkAlt, FaMicrophone, FaGlobe } from 'react-icons/fa';
 import { qlue } from '../data/qlue';
 import ScrollReveal from '../components/ScrollReveal';
 import VoiceConcierge from '../components/VoiceConcierge';
@@ -82,6 +82,18 @@ const QlueLive = () => {
                   <FaMicrophone size={13} />
                   Try the live voice
                 </a>
+                {qlue.liveUrl && (
+                  <a
+                    href={qlue.liveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl font-body font-bold text-xs tracking-wider uppercase bg-[var(--color-accent)]/10 border border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-black transition-colors cursor-hover"
+                  >
+                    <FaGlobe size={14} />
+                    Live Preview
+                    <FaExternalLinkAlt size={10} className="opacity-70" />
+                  </a>
+                )}
                 <a
                   href={qlue.github}
                   target="_blank"

@@ -17,6 +17,7 @@ export const qlue = {
   tech: ['Flutter', 'Dart', 'Provider', 'Node.js', 'AWS SAM', 'AWS Lambda', 'Bedrock (Nemotron-super)', 'Claude 3 Haiku', 'Amazon Polly', 'Textract', 'DynamoDB', 'S3', 'SNS', 'API Gateway (WebSocket)', 'Firebase Auth', 'FCM'],
   github: 'https://github.com/Rishi1435/Qlue-v2',
   demo: '/qlue-live', // in-app route to the live demonstration screen
+  liveUrl: 'https://qlueai.vercel.app/', // real deployed product — download + web version
   metrics: [
     { value: '649', label: 'Students Reached', note: 'Unique students who ran a Qlue session during the Project Space showcase.' },
     { value: '4', label: 'Interview Modes', note: 'Résumé technical, HR behavioural, self-introduction, and URL/website tutoring.' },
